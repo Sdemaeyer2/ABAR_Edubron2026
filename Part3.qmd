@@ -1,0 +1,37 @@
+---
+title: "Part 3: Reporting and visualizing"
+format: html
+---
+
+## Outline
+
+This part of the workshop is about interpreting and reporting the results of our models. Here we demonstrate different ways to make sense of the information in our posterior probability distributions for our parameters. First, we will show how different packages in `R` can be used to visually explore the posterior probability distributions. Next, we focus on how to numerically summarize the information in the posterior probability distribution in order to support our reporting on the results. 
+
+### Slides
+
+The htlm-version of the slides for this first part can be found <a href="Presentations/Part3/Slides_Part3.html" target="blank">here</a>
+
+### Data
+
+For this first part, we used a dataset on the effect of a writing intervention. The data can be downloaded <a href="Data/WritingData.RData" target="blank"> here </a> (right-click to save as). 
+
+### R scripts
+
+A powerful way to visualize the effects of (mixed effects) regression models, is to plot <i>Hypothetical Outcome Plots</i>. These type of plots need a considerable amount of coding. Therefore, we provide two R-scripts that can be used as a starting point to plot your own results:
+
+- <a href="R_code/HOP_script.R" target="blank"> HOP_Script.R </a>
+
+- <a href="R_code/HOP_MixedEffects_script.R" target="blank"> HOP_MixedEffects_Script.R </a>
+
+## References and resources
+
+More on the `bayesplot` package: <a href="https://mc-stan.org/bayesplot/" target="blank"> https://mc-stan.org/bayesplot/ </a>
+
+More on the `ggdist` package: <a href="https://mjskay.github.io/ggdist/reference/index.html" target="blank"> https://mjskay.github.io/ggdist/reference/index.html </a>
+
+Papers on the use of quantile dotplots: 
+
+- <a href="https://dl.acm.org/doi/10.1145/2858036.2858558" target="blank"> https://dl.acm.org/doi/10.1145/2858036.2858558 </a>
+
+- <a href="https://www.mjskay.com/papers/chi2018-uncertain-bus-decisions.pdf" target="blank"> https://www.mjskay.com/papers/chi2018-uncertain-bus-decisions.pdf </a>
+

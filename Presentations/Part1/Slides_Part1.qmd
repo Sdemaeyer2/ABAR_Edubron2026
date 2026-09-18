@@ -1,0 +1,1344 @@
+---
+title: "Applied Bayesian Analyses in R"
+subtitle: "Part1"
+author: "Sven De Maeyer"
+format:
+  revealjs: 
+    theme: [default, ../edubron-slides.scss, ../../_uantwerpen-brand.scss]
+    width: 1422
+    height: 805
+    slide-number: true
+    include-in-header: 
+      text: |
+        <style>
+        .center-xy {
+          margin: 0;
+          position: absolute;
+          top: 50%;
+          -ms-transform: translateY(-50%);
+          transform: translateY(-50%);
+        }
+        </style>
+editor: visual
+self-contained: true
+execute: 
+  echo: false
+  include: true
+  output: true
+code:
+  code-copy: true
+  code-line-numbers: true
+code-annotations: hover
+---
+
+# Introduction
+
+```{css echo=FALSE}
+.small-code{
+  font-size: 75%
+}
+```
+
+```{r}
+#| echo: false
+#| include: false
+#| message: false
+#| warning: false
+
+# Packages are loaded here as well as on the "Frequentistic ..." slide.
+# That slide shows the library() calls on purpose, but the elicitation
+# slides now come BEFORE it and already need tidyverse/ggplot2.
+library(here)
+library(tidyverse)
+library(brms)
+library(bayesplot)
+
+# ── THE ROOM'S TWO ELICITED RANGES ──────────────────────────────────
+# Filled in live during the session from the elicitation console.
+# The values below are a realistic placeholder so the deck renders
+# before the workshop; replace them and re-render during the break.
+#
+# Both questions are asked as the SAME stated coverage, so one divisor
+# serves both. Q1 is about OBSERVATIONS, Q2 is about a PARAMETER.
+
+COVERAGE <- 0.80
+Z <- 2 * qnorm(0.5 + COVERAGE / 2)     # 2.563 for an 80% central interval
+
+# Q1 - how spread out are INDIVIDUAL commutes?  -> prior on sigma
+ind_low     <- 10
+ind_high    <- 55
+sigma_prior <- (ind_high - ind_low) / Z
+sigma_logsd <- 0.30                    # how unsure we are about that spread
+
+# Q2 - where is the AVERAGE?  -> prior on mu
+mu_low   <- 35
+mu_high  <- 55
+mu_prior <- (mu_low + mu_high) / 2
+sd_prior <- (mu_high - mu_low) / Z
+```
+
+## Welcome
+
+Let's get to know each other first!
+
+-   what's your name?
+-   a 1/2-minute pitch on your research
+-   any experience with Bayesian inference?
+-   what do you hope to learn?
+
+## Outline
+
+Part 1: Introduction to Bayesian inferences and some basics in `brms`
+
+Part 2: Checking the model with the WAMBS and how to do it in `R`
+
+Part 3: Reporting and interpreting Bayesian models
+
+Part 4: Analysing your own data or integrated exercise
+
+Throughout the different presentations we will also increase model complexity
+
+## Practical stuff
+
+All material is on the on-line dashboard:
+
+<https://bar-edubron2026.netlify.app/>
+
+You can find:
+
+-   an overview of the course
+
+-   how to prepare
+
+-   for each day the slides and datasets
+
+-   html slides can be exported to pdf in your browser (use the menu button bottom right)
+
+# Statistical Inference
+
+## Why statistical inference?
+
+::: center-xy
+We want to learn more about [a population]{.hl} but we have [sample data]{.hl}!
+
+Therefore, we have [uncertainty]{.hl}
+:::
+
+## `r fontawesome::fa("pen", "white")` Write it down {background-color="#002e65" transition="slide-in"}
+
+Two questions. Write down both, before anyone says a number out loud.
+
+**1 — about individual people.** Think of the people sitting around you.
+[8 out of 10]{.hl} of them have a one-way commute between ___ and ___
+minutes.
+
+**2 — about the average.** Now forget individuals. If we averaged the commute
+of everyone in this room into a single number, what would that number be?
+Give a low and a high you would bet on [8 times out of 10]{.hl}.
+
+These are *not* the same question. Look at how different your two ranges are.
+
+::: aside
+Don't discuss it with your neighbour yet — we want *your* numbers, not the
+first ones you heard.
+:::
+
+## What the room believes
+
+```{r}
+#| echo: false
+#| fig-height: 3.5
+#| fig-width: 11
+X <- seq(0, 90, by = 0.25)
+
+curves <- rbind(
+  data.frame(x = X, d = dnorm(X, mu_prior, sigma_prior),
+             panel = "Q1  where do INDIVIDUAL commutes fall?   (observations)"),
+  data.frame(x = X, d = dnorm(X, mu_prior, sd_prior),
+             panel = "Q2  where is the AVERAGE?   (a parameter)")
+)
+
+# keep the panels in the order they were asked, not alphabetical
+curves$panel <- factor(curves$panel, levels = unique(curves$panel))
+
+ggplot(curves, aes(x, d)) +
+  geom_area(fill = "#002e65", alpha = .18) +
+  geom_line(colour = "#002e65", linewidth = 1) +
+  geom_vline(xintercept = mu_prior, colour = "#ea2c38",
+             linetype = "dotted", linewidth = 1) +
+  facet_wrap(~ panel, ncol = 2, scales = "free_y") +
+  labs(x = "one-way commute (minutes)", y = "density") +
+  theme_linedraw()
+```
+
+Same centre. [Very different width]{.hl} — and they mean different things.
+
+## What the two numbers mean {.smaller}
+
+- **Q1** is a statement about the [spread of the data]{.hl} itself:
+  $\sigma \approx `r round(sigma_prior, 1)`$ minutes. People genuinely differ,
+  and they would differ just as much if we had a million observations.
+- **Q2** is a statement about a [parameter]{.hl} we do not know:
+  $\mu \backsim N(`r round(mu_prior, 1)`, `r round(sd_prior, 1)`)$.
+  Our *uncertainty* about the average — and that one shrinks as data arrives.
+
+Keeping these apart is the single most useful habit in this workshop.
+
+::: {.calcnote}
+**How the numbers were made.** An 80% central interval reaches
+`r round(Z/2, 2)` standard deviations either side of the centre, so it is
+2 × `r round(Z/2, 2)` = `r round(Z, 3)` standard deviations **wide** — compare
+the familiar ±1.96 for 95%, which is 3.920 wide. A low–high pair hands us a
+width, not a half-width, so sd = width / `r round(Z, 3)`.
+
+Q1: $\sigma$ = (`r ind_high` − `r ind_low`) / `r round(Z, 3)` =
+**`r round(sigma_prior, 1)`**.
+
+Q2: $\mu_0$ = (`r mu_low` + `r mu_high`) / 2 = **`r round(mu_prior, 1)`**,
+$\sigma_0$ = (`r mu_high` − `r mu_low`) / `r round(Z, 3)` = **`r round(sd_prior, 1)`**.
+:::
+
+## Why statistical inference? an example
+
+> What is the effect of how far you live from work on the time your commute takes?
+
+We can estimate the effect by using a regression model based on sample data:
+
+$$\text{CommuteTime}_i = \beta_0 + \beta_1 * \text{Distance}_i + \epsilon_i$$
+
+Of course, we are not interested in the value of $\beta_1$ in the sample, but we want to learn more on $\beta_1$ in the population!
+
+## Frequentistic statistical inference (with data...)
+
+Maximum Likelihood estimation:
+
+::: small-code
+```{r}
+## Libraries
+
+library(here)
+library(tidyverse)
+library(brms)
+library(bayesplot)
+
+## Load the data
+
+CommuteData <- read_csv(
+  file = here("Presentations", "CommuteData.csv")
+)
+
+CommuteData <- CommuteData |>
+  mutate(
+    Distance_c  = Distance - mean(Distance, na.rm = T),
+    Departure_c = DepartureHour - 7          # hours after 07:00
+  )
+
+Model1 <- lm(CommuteTime ~ Distance_c, data = CommuteData)
+
+summary(Model1)
+```
+:::
+
+::: aside
+Simulated data — `simulate_commute.R` documents the process and its sources.
+:::
+
+## Frequentistic statistical inference (interpretation ...)
+
+```{r}
+#| echo: false
+lower  <- 1.080 - (1.96*.053)
+higher <- 1.080 + (1.96*.053)
+```
+
+Sample: for each km further from work, approx one minute longer
+
+Population:
+
+-   p-value = prob to observe a \|1.080\| estimate in our sample if effect is zero in the population is lower than 0.05
+-   CI = in 95% of possible samples the calculation of a CI would result in an interval containing the true population value
+
+==\> \[`r round(lower, 3)` ; `r round(higher, 3)`\] so: 1.00 is as equally probable as 1.15 ...
+
+## Bayesian statistical inference
+
+```{r}
+Model1_commute <- readRDS(
+  here("Presentations", "Output", "Model1_commute.RDS")
+)
+
+
+mcmc_areas(
+  Model1_commute,
+  pars = c("b_Distance_c"),
+  prob = 0.89
+) + theme_minimal()
+```
+
+## Frequentist compared to Bayesian inference
+
+<br> <br> You can explore a tutorial App of J. Krushke (2019) <br> <br> <https://iupbsapps.shinyapps.io/KruschkeFreqAndBayesApp/>
+
+<br> <br> He has also written a nice tutorial, linked to this App: <br> <br> <https://jkkweb.sitehost.iu.edu/KruschkeFreqAndBayesAppTutorial.html>
+
+## Advantages & Disadvantages of Bayesian analyses
+
+::::: columns
+::: {.column width="50%"}
+Advantages:
+
+-   Natural approach to express uncertainty
+-   Ability to incorporate prior knowledge
+-   Increased model flexibility
+-   Full posterior distribution of the parameters
+-   Natural propagation of uncertainty
+:::
+
+::: {.column width="50%"}
+Disadvantage:
+
+-   Slow speed of model estimation
+-   Some reviewers don't understand you (<i>"give me the p-value"</i>)
+:::
+:::::
+
+::: aside
+Slight adaptation of a slide from Paul Bürkner's presentation available on YouTube: <https://www.youtube.com/watch?v=FRs1iribZME>
+:::
+
+# Bayesian Inference
+
+## Bayesian Theorem
+
+::::: columns
+::: {.column width="50%"}
+```{r, out.height = "50%", out.width="50%", echo = FALSE}
+knitr::include_graphics("prior_data_posterior.png")
+```
+:::
+
+::: {.column width="50%"}
+$$
+P(\theta|data) = \frac{P(data|\theta)P(\theta)}{P(data)}
+$$ with
+
+-   $P(data|\theta)$ : the [likelihood]{.hl} of the data given our model $\theta$
+-   $P(\theta)$ : our [prior]{.hl} belief about values for the model parameters
+-   $P(\theta|data)$: the [posterior]{.hl} probability for model parameter values
+:::
+:::::
+
+::: aside
+meme from <https://twitter.com/ChelseaParlett/status/1421291716229746689?s=20>
+:::
+
+## Likelihood
+
+$P(data|\theta)$ : the [likelihood]{.hl} of the data given our model $\theta$
+
+This part is about our [MODEL]{.marker} and the parameters (aka the unknowns) in that model
+
+> Example: a model on "time needed to get to work" could be a normal distribution: $y_i \backsim N(\mu, \sigma)$
+
+So: for a certain average ($\mu$) and standard deviation ($\sigma$) we can calculate the probability of observing a commute of 45 minutes
+
+## Prior
+
+Expression of our [prior knowledge (belief)]{.marker} on the parameter values
+
+> Example: a model on "time needed to get to work" could be a normal distribution $y_i \backsim N(\mu, \sigma)$
+
+e.g., How probable is an average commute of 20 minutes ($P(\mu=20)$) and how probable is a standard deviation of 25 minutes ($P(\sigma=25)$)?
+
+::: aside
+You already did this at the start: the ranges you wrote down were priors on
+$\mu$ and on $\sigma$, before you had seen a single observation.
+:::
+
+## Prior as a distribution
+
+How probable are different values as average commuting time in a population?
+
+```{r}
+X <- seq(0, 90, by = 0.1)
+
+Prob <- dnorm(
+  X,
+  mu_prior,
+  sd_prior
+  )
+
+data_frame(X, Prob) %>%
+  ggplot(aes(x = X, y = Prob)) +
+    geom_line() +
+    labs(
+      x = expression(mu),
+      y = "density"
+    ) +
+  theme_linedraw()
+```
+
+## Types of priors
+
+::::: columns
+::: {.column width="50%"}
+[Uninformative/Weakly informative]{.hl}
+
+When objectivity is crucial and you want *let the data speak for itself...*
+:::
+
+::: {.column width="50%"}
+[Informative]{.hl}
+
+When including significant information is crucial
+
+-   previously collected data
+-   results from former research/analyses
+-   data of another source
+-   theoretical considerations
+-   elicitation
+:::
+:::::
+
+## Type of priors (visually)
+
+```{r}
+X <- seq(0, 90, by = 0.1)
+
+Weakly_Informative <- dnorm(
+  X,
+  mu_prior,
+  sd_prior
+  )
+
+Uninformative <- dunif(
+  X,
+  min = 5,
+  max = 85
+)
+
+
+data_frame(X, Weakly_Informative, Uninformative) %>%
+  pivot_longer(c(Weakly_Informative, Uninformative)) %>%
+  rename(Prior = name) %>%
+  ggplot(aes(x = X, y = value, lty = Prior)) + 
+    geom_line() +
+    labs(
+      x = expression(mu),
+      y = "density"
+    ) +
+  theme_linedraw()
+```
+
+Two potential priors for the *mean commuting time* in the population
+
+## Bayesian theorem in stats
+
+<br> <br> *"For Bayesians, the data are treated as fixed and the parameters vary. \[...\] Bayes' rule tells us that to calculate the posterior probability distribution we must combine a likelihood with a prior probability distribution over parameter values."* <br> (Lambert, 2018, p.88)
+
+## Let's apply this idea
+
+Our [**Model**]{.hl} for commuting times
+
+$y_i \backsim N(\mu, \sigma)$
+
+## Let's apply this idea
+
+Our [**Priors**]{.hl} related to mu and sigma:
+
+```{r, echo = TRUE}
+par(mfrow=c(2,2))
+curve( dnorm( x , mu_prior , sd_prior ) , from=0 , to=90 ,
+       xlab="mu", main="Prior for mu (from Q2)")
+curve( dlnorm( x , log(sigma_prior) , sigma_logsd ) , from=0 , to=45 ,
+       xlab="sigma", main="Prior for sigma (from Q1)")
+```
+
+## Let's apply this idea
+
+Our [**data**]{.hl}:
+
+```{r, echo = T}
+CT <- c(
+  22,
+  35,
+  18,
+  47,
+  12,  ## lucky one; lives around the corner
+  29,
+  38,
+  25,
+  55,
+  31)
+CT
+```
+
+::: aside
+Ten commutes, in minutes. Mean `r round(mean(c(22,35,18,47,12,29,38,25,55,31)), 1)`,
+sd `r round(sd(c(22,35,18,47,12,29,38,25,55,31)), 1)`.
+:::
+
+## Let's apply this idea
+
+What is the [**posterior probability**]{.hl} of [mu = 30]{.marker} combined with a [sigma = 13]{.marker}?
+
+```{r}
+#| echo: false
+
+options(scipen = 0)   # these numbers get small; let R use scientific notation
+```
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+#| echo: true
+
+# Calculate the likelihood of the data
+# given these parameter values of
+# mu = 30 ; sigma = 13
+# remember CT contains our data
+# the likelihood of the WHOLE dataset
+# is the PRODUCT over the observations
+Likelihood <-
+  prod(
+      dnorm(
+        CT ,
+        mean=30 ,
+        sd=13)
+      )
+Likelihood
+
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| echo: true
+
+# Calculate our Prior belief
+
+Prior <- dnorm(30, mu_prior , sd_prior ) *
+  dlnorm(13 , log(sigma_prior) , sigma_logsd )
+
+Prior
+
+```
+:::
+:::::
+
+```{r}
+#| echo: true
+
+# Calculate posterior as product 
+# of Likelihood and Prior
+
+Product <- Likelihood * Prior
+
+Product
+
+```
+
+## Let's apply this idea
+
+What is the [**posterior probability**]{.hl} of [mu = 45]{.marker} combined with a [sigma = 18]{.marker}?
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+#| echo: true
+
+# Calculate the likelihood of the data
+# given these parameter values of
+# mu = 45 ; sigma = 18
+# remember CT contains our data
+# again: PRODUCT, not sum
+Likelihood <-
+  prod(
+      dnorm(
+        CT ,
+        mean=45 ,
+        sd=18)
+      )
+Likelihood
+
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| echo: true
+
+# Calculate our Prior belief
+
+Prior <- dnorm(45, mu_prior , sd_prior ) * dlnorm(18 , log(sigma_prior) , sigma_logsd )
+
+Prior
+
+```
+:::
+:::::
+
+```{r}
+#| echo: true
+
+# Calculate posterior as product 
+# of Likelihood and Prior
+
+Product <- Likelihood * Prior
+
+Product
+
+```
+
+## Grid approximation
+
+We calculated the posterior probability of a combination of 2 parameters
+
+We could repeat this systematically for following values:
+
+```{r}
+#| echo: true
+
+# sample some values for mu and sigma
+mu.list <- seq(from = 10,
+               to = 70,
+               length.out=400)
+sigma.list <- seq(from = 1,
+                  to = 40,
+                  length.out = 400)
+
+```
+
+aka: we create a grid of possible parameter value combinations and approx the distribution of posterior probabilities
+
+::: {.calcnote}
+From here on we work with [log]{.hl} probabilities (`log = TRUE`): a product of
+many small densities underflows to zero on a computer, a sum of logs does not.
+:::
+
+## Grid approximation applied
+
+```{r}
+post <- expand.grid(mu = mu.list, 
+                    sigma = sigma.list)
+
+post$LL <-
+  sapply(1:nrow(post),
+    function(i) sum(
+      dnorm(
+        CT ,
+        mean=post$mu[i] ,
+        sd=post$sigma[i] ,
+        log=TRUE ) ) )
+
+post$prod <- post$LL +
+  dnorm(post$mu, mu_prior , sd_prior , TRUE) +
+  dlnorm(post$sigma , log(sigma_prior) , sigma_logsd , TRUE)
+
+# Re-scale the posterior 
+# to the probability scale
+post$prob <- exp(post$prod - 
+                   max(post$prod)
+                 )
+
+set.seed(1975)
+
+post %>%
+  # sample 10000 rows
+  # with replacement
+  # higher prob higher prob to 
+  # be sampled
+  sample_n(size = 15000, 
+           replace = TRUE, 
+           weight = prob) %>%
+  
+  # create the plot
+  ggplot(aes(x = mu, y = sigma)) +
+  geom_density_2d_filled() + 
+  annotate(geom = "text", x = 30, y = 13, label = "C1",
+           colour = "#ffffff", fontface = "bold", size = 4.5) +
+  annotate(geom = "text", x = 45, y = 18, label = "C2",
+           colour = "#ff9aa2", fontface = "bold", size = 4.5) +
+  scale_y_continuous(limits = c(5,35)) +
+  theme_minimal()
+```
+
+C1: first combo of mu and sigma
+
+& C2: second combo of mu and sigma
+
+## Grid approximation applied
+
+```{r}
+set.seed(1975)
+
+post %>%
+  # sample 10000 rows
+  # with replacement
+  # higher prob higher prob to 
+  # be sampled
+  sample_n(size = 15000, 
+           replace = TRUE, 
+           weight = prob) %>%
+  
+  # create the plot
+  ggplot(aes(x = mu)) +
+  geom_density() +
+  theme_minimal() +
+  geom_vline(xintercept = 30, linetype = "dotted",
+             linewidth = 0.8, colour = "#002e65") +
+  geom_vline(xintercept = 45, linetype = "dotted",
+             linewidth = 0.8, colour = "#ea2c38") +
+  annotate("text", x = 30, y = Inf, label = "C1",
+           hjust = 1.05, vjust = 1.8, size = 4.2,
+           fontface = "bold", colour = "#002e65") +
+  annotate("text", x = 45, y = Inf, label = "C2",
+           hjust = -0.05, vjust = 1.8, size = 4.2,
+           fontface = "bold", colour = "#ea2c38") +
+  ggtitle("Posterior Probability of average")
+
+```
+
+## Grid approximation applied
+
+```{r}
+set.seed(1975)
+
+post %>%
+  # sample 10000 rows
+  # with replacement
+  # higher prob higher prob to 
+  # be sampled
+  sample_n(size = 15000, 
+           replace = TRUE, 
+           weight = prob) %>%
+  
+  # create the plot
+  ggplot(aes(x = sigma)) +
+  geom_density() +
+  theme_minimal() +
+  geom_vline(xintercept = 13, linetype = "dotted",
+             linewidth = 0.8, colour = "#002e65") +
+  geom_vline(xintercept = 18, linetype = "dotted",
+             linewidth = 0.8, colour = "#ea2c38") +
+  annotate("text", x = 13, y = Inf, label = "C1",
+           hjust = 1.05, vjust = 1.8, size = 4.2,
+           fontface = "bold", colour = "#002e65") +
+  annotate("text", x = 18, y = Inf, label = "C2",
+           hjust = -0.05, vjust = 1.8, size = 4.2,
+           fontface = "bold", colour = "#ea2c38") +
+  ggtitle("Posterior Probability of st.dev.")
+
+```
+
+## Watching the data take over
+
+Same prior, more data. `n` is how many commutes we have looked at.
+
+```{r}
+#| echo: true
+#| output-location: slide
+#| fig-height: 3.4
+
+# conjugate update of mu, with sigma plugged in from the data
+update_mu <- function(y, mu0, sd0) {
+  s2   <- var(y)
+  prec <- 1/sd0^2 + length(y)/s2
+  c(mu = (mu0/sd0^2 + sum(y)/s2) / prec,
+    sd = sqrt(1/prec))
+}
+
+u5  <- update_mu(CT[1:5], mu_prior, sd_prior)
+u10 <- update_mu(CT,      mu_prior, sd_prior)
+
+steps <- data.frame(
+  step = factor(c("your prior", "after 5", "after 10"),
+                levels = c("your prior", "after 5", "after 10")),
+  mu   = c(mu_prior, u5[["mu"]], u10[["mu"]]),
+  sd   = c(sd_prior, u5[["sd"]], u10[["sd"]])
+)
+
+grid <- seq(0, 90, by = 0.5)
+
+curves <- do.call(rbind, lapply(
+  seq_len(nrow(steps)),
+  function(i) data.frame(step = steps$step[i],
+                         x    = grid,
+                         d    = dnorm(grid, steps$mu[i], steps$sd[i]))
+))
+
+ggplot(curves, aes(x, d, colour = step, fill = step)) +
+  geom_area(alpha = .15, position = "identity") +
+  geom_line(linewidth = 1) +
+  scale_colour_manual(values = c("#002e65", "#1b4a7a", "#ea2c38")) +
+  scale_fill_manual(values   = c("#002e65", "#1b4a7a", "#ea2c38")) +
+  labs(x = "average one-way commute (minutes)", y = "density",
+       colour = NULL, fill = NULL) +
+  theme_linedraw()
+```
+
+## Watching the data take over
+
+```{r}
+#| echo: false
+steps %>%
+  mutate(across(c(mu, sd), \(x) round(x, 1))) %>%
+  knitr::kable(col.names = c("", "mu", "sd"))
+```
+
+Five observations already move us most of the way.
+
+With the full dataset later today, the prior barely matters at all — which is
+itself worth knowing: [priors matter most when data are scarce]{.hl}.
+
+## Sampling parameter values
+
+-   Instead of a fixed grid of combinations of parameter values,
+
+-   sample pairs/triplets/... of parameter values
+
+-   reconstruct the posterior probability distribution
+
+# Why `brms`?
+
+## Imagine
+
+A 'simple' linear model
+
+<br>
+
+$$\begin{aligned}
+  & CT_{i}  \sim N(\mu,\sigma_{e_{i}})\\
+  & \mu = \beta_0 + \beta_1*\text{Distance}_{i} + \beta_2*\text{DepartureHour}_{i} + \\
+  & \beta_3*\text{Mode}_{i} + \beta_4*\text{Age}_{i} + \beta_5*\text{Parking}_{i} \\
+\end{aligned}$$
+
+<br>
+
+So you can get a REALLY LARGE number of parameters!
+
+## Markov Chain Monte Carlo - Why?
+
+Complex models $\rightarrow$ Large number of parameters $\rightarrow$ exponentionally large number of combinations!
+
+<br>
+
+Posterior gets unsolvable by grid approximation
+
+<br>
+
+We will approximate the 'joint posterior' by ['smart' sampling]{.hl}
+
+<br>
+
+Samples of combinations of parameter values are drawn
+
+<br>
+
+BUT: samples will not be random!
+
+## MCMC - demonstrated
+
+<br> <br> Following link brings you to an interactive tool that let's you get the basic idea behind MCMC sampling:
+
+<br>
+
+<https://chi-feng.github.io/mcmc-demo/app.html#HamiltonianMC,standard>
+
+<br>
+
+## Software
+
+<br>
+
+-   different dedicated software/packages are available: JAGS / BUGS / Stan
+
+-   most powerful is [Stan]{.hl}! Specifically the *Hamiltonian Monte Carlo* algorithm makes it the best choice at the moment
+
+-   [Stan]{.hl} is a probabilistic programming language that uses C++
+
+## Example of Stan code
+
+```{r echo = F}
+load(here("Presentations", "Part1", "Model_math_naive.R"))
+stancode(Model_math_naive)
+```
+
+## How `brms` works
+
+![](brms_procedure.jpeg)
+
+# The basics of `brms`
+
+## `brms` syntax
+
+Very very similar to `lm` or `lme4` and in line with typical R-style writing up of a model ...
+
+::::: columns
+::: {.column width="50%"}
+`lme4`
+
+```{r}
+#| echo: true
+#| eval: false
+
+Model <- lmer(
+  y ~ x1 + x2 + (1|Group),
+  data = Data,
+
+  ...
+)
+```
+:::
+
+::: {.column width="50%"}
+`brms`
+
+```{r}
+#| echo: true
+#| eval: false
+
+Model <- brm(
+  y ~ x1 + x2 + (1|Group),
+  data = Data,
+  family = "gaussian",
+  backend = "cmdstanr",
+  
+  ...
+)
+```
+:::
+:::::
+
+Notice:
+
+-   `backend = "cmdstanr"` indicates the way we want to interact with Stan and C++
+
+## Let's retake the example on commuting
+
+The simplest model looked like:
+
+$$
+CT_i \sim N(\mu,\sigma_e)
+$$
+
+In `brms` this model is:
+
+```{r echo = TRUE, eval = FALSE}
+CT <- c(22, 35, 18, 47, 12, 29, 38, 25, 55, 31) # <1>
+
+# First make a dataset from our CT vector
+DataCT <- data_frame(CT)  # <2>
+
+Mod_CT1 <- brm(                        # <3>
+  CT ~ 1, # We only model an intercept # <4>
+  data = DataCT,                       # <5>
+  backend = "cmdstanr",                # <6>
+  seed = 1975                          # <7>
+)
+
+```
+
+1.  create a dataset with the ten commuting times
+2.  change it to a data frame
+3.  the brm() commando runs the model
+4.  define the model
+5.  define the dataset to us
+6.  how brms and stan communicate
+7.  make the estimation reproducible
+
+<b> 🏃 Try it yourself and run the model ... (don't forget to load the necessary packages: `brms` & `tidyverse`) </b>
+
+## Basic output `brms`
+
+```{r}
+Mod_CT1<- readRDS(
+  file = here("Presentations",
+              "Part1",
+              "Mod_CT1.RDS")
+  )
+```
+
+```{r, highlight.output = c(10,14)}
+#| echo: true
+#| output-location: slide
+summary(Mod_CT1)
+```
+
+## About chains and iterations
+
+Markov [Chain]{.hl} Monte Carlo
+
+-   A chain of samples of parameter values
+-   It is advised to run [multiple chains]{.hl}
+-   Each sample of parameter values is called an [iteration]{.hl}
+-   First X iterations are used to tune the sampler but not used to interpret the results: X burn-in iterations
+
+`brms` defaults with **4 chains** each of **2000 iterations** of which **1000 iterations** are used as burn-in
+
+## Changing `brms` defaults
+
+```{r}
+#| eval: false
+#| echo: true
+#| code-line-numbers: "5|6|7|8"
+Mod_CT1 <- brm(
+  CT ~ 1,
+  data = DataCT,
+  backend = "cmdstanr",
+  chains = 5,
+  iter = 6000,
+  warmup = 1500,
+  cores = 4,
+  seed = 1975
+)
+```
+
+## Good old `plot()` function
+
+```{r}
+#| echo: true
+#| output-location: slide
+plot(Mod_CT1)
+```
+
+## `r fontawesome::fa("laptop-code", "white")` Your Turn {background-color="#002e65" transition="slide-in"}
+
+-   Open `CommuteData.RData`
+-   Estimate your first Bayesian Models
+-   Dependent variable: `CommuteTime`
+-   Model1: only an intercept
+-   Model2: introduce the effect of `Distance_c` and `Departure_c` on `CommuteTime`
+-   Change the `brms` defaults (4 chains of 6000 iterations)
+-   Make plots with the `plot()` function
+-   What do we learn? (rough interpretation)
+
+## Results Exercise
+
+*Model1: only an intercept (brms defaults)*
+
+```{r}
+#| eval: true
+#| message: false
+#| warning: false
+#| echo: true
+
+load(file = here(
+    "Presentations",
+    "CommuteData.RData")
+    )
+
+Mod_CT1 <- brm(
+  CommuteTime ~ 1,
+  data = CommuteData,
+  backend = "cmdstanr",
+  seed = 1975
+)
+```
+
+## Results Exercise
+
+*Model1: only an intercept (brms defaults)*
+
+```{r}
+#| eval: true
+#| message: false
+#| warning: false
+#| echo: true
+summary(Mod_CT1)
+```
+
+## Results Exercise
+
+*Model1: only an intercept (brms defaults)*
+
+```{r}
+#| eval: true
+#| message: false
+#| warning: false
+#| echo: true
+plot(Mod_CT1)
+```
+
+## Results Exercise
+
+*Model2: add the effect of* `Distance_c` *and* `Departure_c`
+
+```{r}
+#| eval: true
+#| message: false
+#| warning: false
+#| echo: true
+
+Mod_CT2 <- brm(
+  CommuteTime ~ 1 + Distance_c + Departure_c,
+  data = CommuteData,
+  backend = "cmdstanr",
+  seed = 1975
+)
+```
+
+## Results Exercise
+
+*Model2: add the effect of* `Distance_c` *and* `Departure_c`
+
+```{r}
+#| eval: true
+#| message: false
+#| warning: false
+#| echo: true
+summary(Mod_CT2)
+```
+
+## Results Exercise
+
+*Model2: add the effect of* `Distance_c` *and* `Departure_c`
+
+```{r}
+#| eval: true
+#| message: false
+#| warning: false
+#| echo: true
+plot(Mod_CT2)
+```
+
+## Results Exercise
+
+*Model3: change the brms defaults*
+
+```{r}
+#| eval: true
+#| message: false
+#| warning: false
+#| echo: true
+
+Mod_CT3 <- brm(
+  CommuteTime ~ 1 + Distance_c + Departure_c,
+  data = CommuteData,
+  chains = 4,
+  iter = 4000,
+  cores = 4,
+  backend = "cmdstanr",
+  seed = 1975
+)
+```
+
+## Results Exercise
+
+*Model3: change the brms defaults*
+
+```{r}
+#| eval: true
+#| message: false
+#| warning: false
+#| echo: true
+summary(Mod_CT3)
+```
+
+## Results Exercise
+
+*Model3: change the brms defaults*
+
+```{r}
+#| eval: true
+#| message: false
+#| warning: false
+#| echo: true
+plot(Mod_CT3)
+```
+
+## About convergence
+
+::::: columns
+::: {.column width="50%"}
+```{r, out.height = "99%", out.width="99%", echo = FALSE}
+knitr::include_graphics("Vethari_paper.jpg")
+```
+:::
+
+::: {.column width="50%"}
+-   $\widehat R$ \< 1.015 for each parameter estimate
+
+-   at least 4 chains are recommended
+
+-   Effective Sample Size (ESS) \> 400 to rely on $\widehat R$
+:::
+:::::
+
+## But is it a good model?
+
+<br> <br> Two complementary procedures: <br> <br>
+
+-   posterior-predictive check
+
+-   compare models with <i>[leave one out cross-validation]{.hl}</i>
+
+## Posterior-predictive check
+
+A visual check that can be performed with `pp_check()` from `brms`
+
+```{r, fig.width = 5, fig.height = 5}
+#| echo: true
+#| output-location: slide
+
+CommuteTimes_Mod2 <-
+  readRDS(file =
+            here("Presentations",
+              "Output",
+              "CommuteTimes_Mod2.RDS")
+          )
+
+pp_check(CommuteTimes_Mod2) + theme_minimal()
+```
+
+## Model comparison with loo cross-validation
+
+$\sim$ AIC or BIC in Frequentist statistics
+
+$\widehat{elpd}$: "expected log predictive density" (higher $\widehat{elpd}$ implies better model fit without being sensitive for overfitting!)
+
+```{r}
+CommuteTimes_Mod1 <-
+  readRDS(file =
+            here("Presentations",
+              "Output",
+              "CommuteTimes_Mod1.RDS")
+          )
+```
+
+```{r}
+#| eval: true
+#| echo: true
+#| output-location: slide
+
+loo_Mod1 <- loo(CommuteTimes_Mod1)
+loo_Mod2 <- loo(CommuteTimes_Mod2)
+
+Comparison<- 
+  loo_compare(
+    loo_Mod1, 
+    loo_Mod2
+    )
+
+print(Comparison, simplify = F)
+```
+
+## Family time
+
+`brms` defaults to `family = gaussian(link = "identity")`
+
+```{r}
+#| eval: false
+#| echo: true
+#| code-line-numbers: "3"
+Mod_CT1 <- brm(
+  CT ~ 1,
+  family = gaussian(link = "identity"),
+  data = DataCT,   
+  backend = "cmdstanr",
+  chains = 5,
+  iter = 6000,
+  warmup = 1500,
+  cores = 4,
+  seed = 1975           
+)
+```
+
+## Family time
+
+<br>
+
+But many alternatives are available!
+
+<br>
+
+The default `family` types known in `R` (e.g, `binomial(link = "logit")`, `Gamma(link = "inverse")`, `poisson(link = "log")`, ...)
+
+<br>
+
+see `help(family)`
+
+<br>
+
+```{r}
+#| eval: false
+#| echo: true
+#| code-line-numbers: "3"
+ModX <- brm(                        
+  Y ~ 1, 
+  family = binomial(link = "logit"),
+  ...
+)
+```
+
+## Family time
+
+<br>
+
+And even more!
+
+<br>
+
+`brmsfamily(...)` has a lot of possible models
+
+<br>
+
+see `help(brmsfamily)`
+
+<br>
+
+```{r}
+#| eval: false
+#| echo: true
+#| code-line-numbers: "3"
+ModX <- brm(                        
+  Y ~ 1, 
+  family = brmsfamily(skew_normal, 
+                      link = "identity", 
+                      link_sigma = "log", 
+                      link_alpha = "identity"),
+  ...
+)
+```
+
+## Mixed effects models
+
+<br>
+
+`brms` can estimate models for more complex designs like `multilevel models` or more generally `mixed effects models`
+
+<br> Random intercepts...
+
+```{r}
+#| eval: false
+#| echo: true
+#| code-line-numbers: "3"
+ModX <- brm(                        
+  Y ~ 1 + x + 
+    (1 | Groupvariable), 
+  ...
+)
+```
+
+Random intercepts and slopes...
+
+```{r}
+#| eval: false
+#| echo: true
+#| code-line-numbers: "3"
+ModX <- brm(                        
+  Y ~ 1 + x + 
+    (1 + x | Groupvariable), 
+  ...
+)
+```
+
+# `r fontawesome::fa("laptop-code", "white")` Time to think! {background-color="#002e65" transition="slide-in"}
+
+Time to think about `your data` and research question
+
+-   Define a simple model?
+-   What are the parameters in that model?
+-   What are your `prior beliefs` about each of the parameters?
+-   Minimum and maximum values assumed for each parameter?
+-   Do all potential parameter values have a similar probability?

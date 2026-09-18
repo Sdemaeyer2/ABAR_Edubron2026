@@ -1,0 +1,60 @@
+/*-- scss:defaults --*/
+
+// =====================================================================
+//  UAntwerpen house style — SINGLE SOURCE OF TRUTH FOR ALL COLOURS
+//  ---------------------------------------------------------------
+//  Change a colour here and it changes on the website AND on every
+//  slide deck. Nothing else in this project should contain a hex code.
+//
+//  Official values: https://www.uantwerpen.be/en/projects/uantwerp-style-guide/colours/
+//
+//  IMPORTANT (Quarto quirk): this file must be listed LAST in every
+//  `theme:` list. Quarto processes the `scss:defaults` blocks of theme
+//  files in reverse order, so "last in the list" = "first to be
+//  defined" = available to all the other theme files.
+// =====================================================================
+
+
+// ---------------------------------------------------------------
+// Primary institutional colours
+// ---------------------------------------------------------------
+$ua-red:        #ea2c38;  // UAntwerp Red   — Pantone 1795, RGB 234/44/56
+$ua-blue:       #002e65;  // UAntwerp Blue  — Pantone 534,  RGB 0/46/101
+
+// ---------------------------------------------------------------
+// Working tints and shades derived from the two primaries.
+// (`$ua-red` on white is 4.3:1 — fine for headings and slide text,
+//  just under the 4.5:1 AA threshold for small body text, so links
+//  on the website use the darkened `$ua-red-dark` at 5.9:1.)
+// ---------------------------------------------------------------
+$ua-red-dark:   #c41f2b;  // links / small text on light backgrounds
+$ua-red-deep:   #9c1721;  // link hover
+$ua-red-pale:   #fbe3e5;  // soft red wash (callouts, inline code)
+$ua-red-tint:   #ff9aa2;  // red readable ON the navy background
+
+$ua-blue-mid:   #1b4a7a;  // secondary headings, code
+$ua-blue-soft:  #4a6b93;  // muted blue text
+$ua-blue-pale:  #e6ecf3;  // soft blue wash (sidebar hover, table stripes)
+
+// ---------------------------------------------------------------
+// Neutrals
+// ---------------------------------------------------------------
+$ua-paper:      #f7f8fa;  // page background
+$ua-white:      #ffffff;
+$ua-ink:        #1a1a1a;  // body text
+$ua-muted:      #5a6b80;  // captions, slide numbers
+$ua-border:     #d4dae3;
+
+// ---------------------------------------------------------------
+// Semantic aliases — use THESE in theme.scss / edubron-slides.scss
+// so the intent stays readable if the palette ever changes again.
+// ---------------------------------------------------------------
+$brand-primary:    $ua-blue;
+$brand-accent:     $ua-red;
+$brand-link:       $ua-red-dark;
+$brand-link-hover: $ua-red-deep;
+$brand-surface:    $ua-paper;
+$brand-text:       $ua-ink;
+$brand-border:     $ua-border;
+
+/*-- scss:rules --*/

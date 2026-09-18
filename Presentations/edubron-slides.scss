@@ -1,0 +1,271 @@
+/*-- scss:defaults --*/
+
+// =====================================================================
+//  Reveal.js slide theme — Introduction to Bayesian Analyses with R
+//  Edubron / Faculty of Social Sciences, University of Antwerp, 2026
+//
+//  Shared by Slides_Part1.qmd, Slides_Part2.qmd and Slides_Part3.qmd.
+//  All colours come from ../_uantwerpen-brand.scss — no raw hex here.
+// =====================================================================
+
+// fonts
+$presentation-font-size-root: 38px !default;
+
+// Reveal colour variables
+$body-bg:          $ua-white;
+$body-color:       $brand-primary;
+$link-color:       $brand-link;
+$link-hover-color: $brand-link-hover;
+$code-color:       $ua-blue-mid;
+$selection-bg:     $ua-red-pale;
+
+
+/*-- scss:rules --*/
+
+// ==============================
+// Titles and headings
+// ==============================
+.reveal h1,
+.reveal h2,
+.reveal h3,
+.reveal h4 {
+  color: $brand-primary;
+}
+
+.reveal h1 {
+  border-bottom: 3px solid $brand-accent;
+  padding-bottom: 0.2em;
+}
+
+// Title slide
+.reveal .title-slide h1.title,
+.reveal .title-slide .subtitle,
+.reveal .title-slide .author {
+  color: $brand-primary;
+}
+
+.reveal .title-slide .subtitle {
+  color: $brand-accent;
+}
+
+// ==============================
+// Links
+// ==============================
+.reveal a {
+  color: $brand-link;
+  text-decoration: underline;
+  line-height: 1.3em;
+}
+
+.reveal a:hover {
+  color: $brand-link-hover;
+}
+
+// ==============================
+// Highlight / emphasis class
+// Used as [some text]{.hl} in the .qmd files, which replaces the
+// old inline style="color: ..." spans. Change the colour once here.
+// ==============================
+.reveal .hl {
+  color: $brand-accent;
+  font-weight: 600;
+}
+
+.reveal .hl-blue {
+  color: $ua-blue-mid;
+  font-weight: 600;
+}
+
+// ==============================
+// Small print that FLOWS with the slide.
+//
+// Quarto's `::: aside` is positioned absolutely at the bottom of a reveal
+// slide, so on a slide with tall content it lands on top of the text. Use
+// `::: {.calcnote}` instead for anything longer than a line or two.
+// ==============================
+.reveal .calcnote {
+  font-size: 0.58em;
+  line-height: 1.6;
+  color: $ua-blue-soft;
+  background-color: $ua-blue-pale;
+  border-left: 3px solid $brand-border;
+  border-radius: 4px;
+  padding: 0.55em 0.9em;
+  margin-top: 0.9em;
+}
+
+.reveal .calcnote strong { color: $brand-primary; }
+
+.reveal .has-dark-background .calcnote {
+  color: rgba($ua-white, 0.82);
+  background-color: rgba($ua-white, 0.08);
+  border-left-color: rgba($ua-white, 0.3);
+}
+
+.reveal .has-dark-background .calcnote strong { color: $ua-white; }
+
+// Question / callout marker used on the "your turn" style slides
+.reveal .marker {
+  background-color: $ua-red-pale;
+  color: $ua-red-deep;
+  padding: 0.05em 0.25em;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+// ==============================
+// Dark slides — the "Your Turn" / section-divider slides that carry
+// {background-color="#002e65"} in the .qmd files.
+// Reveal adds .has-dark-background to these; everything on them has to
+// be re-tuned for a navy background instead of a white one.
+// ==============================
+.reveal .has-dark-background,
+.reveal .has-dark-background p,
+.reveal .has-dark-background li,
+.reveal .has-dark-background td {
+  color: $ua-white;
+}
+
+.reveal .has-dark-background h1,
+.reveal .has-dark-background h2,
+.reveal .has-dark-background h3,
+.reveal .has-dark-background h4 {
+  color: $ua-white;
+  border-bottom-color: $brand-accent;
+}
+
+.reveal .has-dark-background code {
+  background-color: rgba($ua-white, 0.14);
+  color: $ua-red-tint;
+}
+
+.reveal .has-dark-background pre code {
+  background-color: rgba($ua-white, 0.1);
+  border-left-color: $ua-red-tint;
+}
+
+.reveal .has-dark-background a,
+.reveal .has-dark-background .hl,
+.reveal .has-dark-background .hl-blue {
+  color: $ua-red-tint;
+}
+
+// asides / footnotes on dark slides
+.reveal .has-dark-background aside,
+.reveal .has-dark-background .aside,
+.reveal .has-dark-background .footnotes,
+.reveal .has-dark-background .aside-footnotes {
+  color: rgba($ua-white, 0.82);
+}
+
+.reveal .has-dark-background ul li::marker,
+.reveal .has-dark-background ol li::marker {
+  color: $ua-red-tint;
+}
+
+.reveal .has-dark-background blockquote {
+  background-color: rgba($ua-white, 0.1);
+  border-left-color: $ua-red-tint;
+  color: $ua-white;
+}
+
+.reveal .has-dark-background table th {
+  background-color: rgba($ua-white, 0.16);
+}
+
+.reveal .has-dark-background table tr:nth-child(even) {
+  background-color: rgba($ua-white, 0.07);
+}
+
+// ==============================
+// Code
+// ==============================
+.reveal code {
+  color: $ua-blue-mid;
+  background-color: $ua-blue-pale;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+}
+
+.reveal pre code {
+  background-color: $ua-blue-pale;
+  border-left: 3px solid $brand-primary;
+}
+
+.small-code {
+  font-size: 75%;
+}
+
+// ==============================
+// Lists
+// ==============================
+.reveal ul li::marker,
+.reveal ol li::marker {
+  color: $brand-accent;
+}
+
+// ==============================
+// Tables
+// ==============================
+.reveal table th {
+  background-color: $brand-primary;
+  color: $ua-white;
+  border-bottom: none;
+}
+
+.reveal table tr:nth-child(even) {
+  background-color: $ua-blue-pale;
+}
+
+// ==============================
+// Blockquotes
+// ==============================
+.reveal blockquote {
+  border-left: 4px solid $brand-accent;
+  background-color: $ua-blue-pale;
+  color: $ua-blue-mid;
+}
+
+// ==============================
+// Footer: slide number
+// ==============================
+.reveal .slide-number,
+.reveal .slide-number a {
+  color: $ua-muted;
+  background-color: transparent;
+}
+
+// ==============================
+// Progress bar
+// ==============================
+.reveal .progress {
+  background: $ua-blue-pale;
+}
+
+.reveal .progress span {
+  background: $brand-accent;
+}
+
+// ==============================
+// Menu button (bottom left)
+// ==============================
+.reveal .slide-menu-button {
+  color: $ua-blue-soft;
+  opacity: 0.8;
+}
+
+.reveal .slide-menu-button:hover {
+  color: $brand-accent;
+  opacity: 1;
+}
+
+// ==============================
+// Helper kept from the original deck
+// ==============================
+.center-xy {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}

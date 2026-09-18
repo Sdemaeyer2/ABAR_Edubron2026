@@ -1,0 +1,180 @@
+/*-- scss:defaults --*/
+
+// =====================================================================
+//  Website theme — Introduction to Bayesian Analyses with R
+//  Edubron / Faculty of Social Sciences, University of Antwerp, 2026
+//
+//  All colours come from _uantwerpen-brand.scss. Do not put raw hex
+//  codes in this file.
+// =====================================================================
+
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+$font-family: "Atkinson Hyperlegible", sans-serif;
+
+// Backgrounds
+$body-bg:          $brand-surface;
+$sidebar-bg:       $brand-primary;
+$navbar-bg:        $brand-primary;
+
+// Text
+$body-color:       $brand-text;
+$sidebar-fg:       $ua-white;
+$navbar-fg:        $ua-white;
+
+// Links
+$link-color:       $brand-link;
+$link-hover-color: $brand-link-hover;
+
+// Accents
+$accent:           $brand-accent;
+
+// Bootstrap semantics
+$primary:          $brand-primary;
+$secondary:        $ua-blue-soft;
+$code-color:       $ua-blue-mid;
+$border-color:     $brand-border;
+$table-border-color: $brand-border;
+
+
+/*-- scss:rules --*/
+
+// ---------------------------------------------------------------
+// Headings
+// ---------------------------------------------------------------
+h1, h2, h3, .quarto-title h1.title {
+  color: $brand-primary;
+}
+
+h2 {
+  border-bottom: 2px solid $brand-accent;
+  padding-bottom: 0.25rem;
+}
+
+h4, h5, h6 {
+  color: $ua-blue-mid;
+}
+
+// ---------------------------------------------------------------
+// Sidebar
+// ---------------------------------------------------------------
+.sidebar-navigation .sidebar-item-container .sidebar-item-text {
+  color: rgba($ua-white, 0.85);
+}
+
+.sidebar-navigation .sidebar-item-container:hover .sidebar-item-text,
+.sidebar-navigation .sidebar-item-container .sidebar-item-text:hover {
+  color: $ua-white;
+}
+
+.sidebar-navigation .sidebar-item-container .active,
+.sidebar-navigation .sidebar-item-container .sidebar-link > code {
+  color: $ua-white;
+  font-weight: 700;
+  border-left: 3px solid $brand-accent;
+  padding-left: 0.5rem;
+}
+
+.sidebar-title,
+.sidebar .sidebar-logo img {
+  margin-bottom: 0.75rem;
+}
+
+// Tool icons (GitHub, reader mode, ...) sit on the navy sidebar,
+// so they have to be light or they disappear.
+.sidebar-tools-main .quarto-navigation-tool,
+.sidebar-tools-main a,
+.sidebar-tools-main .bi,
+.sidebar-navigation .quarto-navigation-tool,
+.sidebar .quarto-navigation-tool {
+  color: rgba($ua-white, 0.85) !important;
+}
+
+.sidebar-tools-main .quarto-navigation-tool:hover,
+.sidebar-tools-main a:hover,
+.sidebar .quarto-navigation-tool:hover {
+  color: $ua-white !important;
+}
+
+// Sidebar search box
+.sidebar #quarto-search .aa-Form {
+  border-color: rgba($ua-white, 0.4);
+}
+
+// ---------------------------------------------------------------
+// Table of contents (right-hand side)
+// ---------------------------------------------------------------
+#TOC .active,
+.sidebar nav[role="doc-toc"] ul > li > a.active {
+  color: $brand-link !important;
+  border-left: 2px solid $brand-accent !important;
+}
+
+// ---------------------------------------------------------------
+// Inline code and code blocks
+// ---------------------------------------------------------------
+code:not(.sourceCode) {
+  color: $ua-red-dark;
+  background-color: $ua-red-pale;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+div.sourceCode {
+  border: 1px solid $brand-border;
+  border-left: 3px solid $brand-primary;
+  border-radius: 4px;
+}
+
+// ---------------------------------------------------------------
+// Tables
+// ---------------------------------------------------------------
+table > thead {
+  background-color: $brand-primary;
+  color: $ua-white;
+}
+
+table > thead th {
+  border-bottom: none;
+}
+
+table > tbody > tr:nth-of-type(odd) {
+  background-color: $ua-blue-pale;
+}
+
+// ---------------------------------------------------------------
+// Blockquotes and callouts
+// ---------------------------------------------------------------
+blockquote {
+  border-left: 4px solid $brand-accent;
+  background-color: $ua-blue-pale;
+  padding: 0.75rem 1rem;
+  color: $ua-blue-mid;
+}
+
+// ---------------------------------------------------------------
+// Footer
+// ---------------------------------------------------------------
+.nav-footer {
+  background-color: $brand-primary;
+  color: rgba($ua-white, 0.9);
+  border-top: 3px solid $brand-accent;
+}
+
+.nav-footer a {
+  color: $ua-white;
+  text-decoration: underline;
+}
+
+// ---------------------------------------------------------------
+// Shared highlight class — same name as on the slides, so
+// [text]{.hl} works in the website pages too.
+// ---------------------------------------------------------------
+.hl {
+  color: $brand-link;
+  font-weight: 600;
+}
+
+.hl-blue {
+  color: $brand-primary;
+  font-weight: 600;
+}

@@ -1,0 +1,15 @@
+---
+title: "About me"
+---
+
+I'm an `R`-enthusiast teaching statistics for behavioral researchers from an applied point of view. My main mission is to get people enthusiastic on the wonderful world of statistics.
+
+In 2020, I started deep-diving into the world of Bayesian analyses during my sabbatical leave in full Covid times. The last 5 years I had the nice opportunity to share my learning with others in the form of different workshops across Europe and by writing some blog-posts to process what I learned myself.
+
+One of my key values is **Open Scholarship**, sharing all research and teaching materials as open as possible for the broad (academic) audience. If you want to dive into my other materials and irregular blog-posts you can visit my website: [Sven's sharing place](https://sdemaeyer.quarto.pub/).
+
+I wish you a pleasant learning journey!
+
+## Contact
+
+Questions or feedback, do not hesitate to contact me at [sven.demaeyer@uantwerpen.be](mailto::sven.demaeyer@uantwerpen.be)

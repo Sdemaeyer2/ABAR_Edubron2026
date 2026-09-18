@@ -1,0 +1,24 @@
+---
+title: "Part 4: Integrated exercise"
+format: html
+---
+
+## Outline
+
+In the final part, you can apply all the insights of the course on your own research by analysing your own data using a Bayesian approach. If you have no concrete dataset yet to apply the Bayesian analyses, you can execute the integrated exercise (see below). 
+
+## Integrated exercise
+
+On the following page you can find an html file with the tasks for this exercise: <a href="Integrated_exercise/Exercise.html" target="blank">click here</a>
+
+The dataset for this exercise can be downloaded here: <a href="Integrated_exercise/Subtitles.RData" target="blank">Subtitles.RData</a>
+
+If you are stuck while making this exercise, you can consult an example response <a href="Integrated_exercise/Exercise_response.html" target="blank">here </a>
+
+
+
+## References and resources
+
+The data for the exercise is a simulated dataset based on the following study:
+
+Frumuselu, Anca Daniela, Sven De Maeyer, Vincent Donche, and María del Mar Gutiérrez Colon Plana. 2015. “Television Series Inside the EFL Classroom: Bridging the Gap Between Teaching and Learning Informal Language Through Subtitles.” Linguistics and Education 32 (December): 107–17. https://doi.org/10.1016/j.linged.2015.10.001.

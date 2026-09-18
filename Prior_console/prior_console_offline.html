@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root{color-scheme:light dark}
+  body{margin:0}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<title>Prior Elicitation Console (offline)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#002e65; --ink-2:#1b4a7a; --muted:#5a6b80;
+    --accent:#ea2c38; --accent-dim:#c41f2b;
+    --ground:#eef1f6; --card:#ffffff; --line:#d4dae3;
+    --chip:#e6ecf3; --ok:#1f7a4d; --on-ink:#ffffff;
+    --shadow:0 1px 2px rgba(0,46,101,.06), 0 6px 20px rgba(0,46,101,.07);
+    --font:"Atkinson Hyperlegible",-apple-system,Segoe UI,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e8eef6; --ink-2:#a9c0dc; --muted:#8fa3bb;
+      --accent:#ff6670; --accent-dim:#ff8a92;
+      --ground:#0a1727; --card:#102338; --line:#1f3b58;
+      --chip:#17304a; --ok:#4cc38a; --on-ink:#0a1727;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e8eef6; --ink-2:#a9c0dc; --muted:#8fa3bb;
+    --accent:#ff6670; --accent-dim:#ff8a92;
+    --ground:#0a1727; --card:#102338; --line:#1f3b58;
+    --chip:#17304a; --ok:#4cc38a; --on-ink:#0a1727;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font);
+       font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;margin-bottom:6px}
+  h1{font-size:1.45rem;margin:0;letter-spacing:-.01em;text-wrap:balance}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 20px}
+  .q{font-style:italic;color:var(--ink-2)}
+
+  .grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
+  .grid > *{min-width:0}
+  @media (max-width:820px){ .grid{grid-template-columns:minmax(0,1fr)} }
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+        padding:16px;box-shadow:var(--shadow)}
+  .card + .card{margin-top:16px}
+  h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+     margin:0 0 12px;font-weight:700}
+
+  label{display:block;font-size:.75rem;color:var(--muted);margin-bottom:3px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  input[type=number],textarea{width:100%;font:inherit;font-variant-numeric:tabular-nums;
+    padding:8px 10px;border:1px solid var(--line);border-radius:6px;
+    background:var(--ground);color:var(--ink)}
+  textarea{font-family:var(--mono);font-size:.78rem;min-height:74px;resize:vertical;min-width:0}
+  input:focus-visible,textarea:focus-visible,button:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px}
+
+  button{font:inherit;font-weight:700;cursor:pointer;border-radius:6px;
+         border:1px solid transparent;padding:8px 14px}
+  .primary{background:var(--ink);color:var(--on-ink);width:100%}
+  .primary:hover{background:var(--ink-2)}
+  .ghost{background:transparent;color:var(--ink-2);border-color:var(--line);
+         font-weight:400;font-size:.8rem;padding:5px 10px}
+  .ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+
+  .hint{font-size:.74rem;color:var(--muted);margin:8px 0 0}
+  .views{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px}
+  .vspacer{flex:1 1 auto;min-width:8px}
+  .vbtn{font-size:.76rem;font-weight:400;padding:4px 11px;border-radius:99px;
+        border:1px solid var(--line);background:transparent;color:var(--ink-2)}
+  .vbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .vbtn[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);
+        color:var(--on-ink);font-weight:700}
+  .pbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
+        color:#fff}
+  .qlabel{font-size:.76rem;color:var(--ink-2);margin:0 0 5px;font-weight:700}
+  .qlabel b{color:var(--accent)}
+  .calc{font-family:var(--mono);font-size:.7rem;color:var(--muted);
+        background:var(--chip);border-radius:6px;padding:8px 10px;margin:0 0 16px;
+        line-height:1.7;overflow-x:auto;white-space:pre-wrap}
+
+  /* counter */
+  .count{display:flex;align-items:baseline;gap:9px;margin-bottom:14px}
+  .count b{font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent)}
+  .count span{color:var(--muted);font-size:.85rem}
+
+  /* stat strip */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+         gap:1px;background:var(--line);border:1px solid var(--line);
+         border-radius:8px;overflow:hidden;margin-bottom:16px}
+  .stat{background:var(--card);padding:11px 13px}
+  .stat dt{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+  .stat dd{margin:3px 0 0;font-size:1.3rem;font-variant-numeric:tabular-nums;
+           font-weight:700;letter-spacing:-.01em}
+  .stat dd small{font-size:.7rem;font-weight:400;color:var(--muted)}
+
+  figure{margin:0 0 16px}
+  figcaption{font-size:.74rem;color:var(--muted);margin-top:5px}
+  svg{display:block;width:100%;height:auto;max-width:100%}
+
+
+  pre{font-family:var(--mono);font-size:.76rem;background:var(--chip);color:var(--ink);
+      padding:12px;border-radius:8px;overflow-x:auto;margin:0;line-height:1.55}
+  .seeded{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.06em;
+          text-transform:uppercase;color:var(--accent);background:var(--chip);
+          padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle}
+  .veil{position:relative}
+  .veil[data-hidden="true"] > .veiled{filter:blur(13px);opacity:.5;pointer-events:none;
+        user-select:none}
+  .veil-msg{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:10px}
+  .veil-msg p{margin:0;color:var(--muted);font-size:.85rem;max-width:32ch}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Prior Elicitation Console</h1>
+    <span id="store" class="hint" aria-live="polite"></span>
+    <span class="hint">offline copy — saves in this browser</span>
+  </header>
+  <p class="sub">
+    <span class="q">“8 out of 10 people here commute between ___ and ___.”</span>
+    &nbsp;·&nbsp;
+    <span class="q">“If we averaged everyone's commute in this room, what would
+    that average be?”</span>
+    <br><span class="hint">Two different questions: first about individual
+    people, then about the average. Both read as 80% ranges.</span>
+  </p>
+
+  <div class="grid">
+    <!-- ───────── left: entry ───────── -->
+    <div>
+      <section class="card">
+        <h2>Add a response</h2>
+        <form id="entry">
+          <p class="qlabel">Q1 · 8 in 10 <b>individuals</b> are between</p>
+          <div class="row">
+            <div><label for="ilo">Low (min)</label>
+              <input id="ilo" type="number" inputmode="numeric" min="0" max="240" step="1"></div>
+            <div><label for="ihi">High (min)</label>
+              <input id="ihi" type="number" inputmode="numeric" min="0" max="240" step="1"></div>
+          </div>
+          <p class="qlabel">Q2 · the <b>average</b> commute is between</p>
+          <div class="row">
+            <div><label for="lo">Low (min)</label>
+              <input id="lo" type="number" inputmode="numeric" min="0" max="240" step="1" required></div>
+            <div><label for="hi">High (min)</label>
+              <input id="hi" type="number" inputmode="numeric" min="0" max="240" step="1" required></div>
+          </div>
+          <p class="qlabel">their own commute (optional)</p>
+          <div class="row">
+            <div><label for="own">Minutes</label>
+              <input id="own" type="number" inputmode="numeric" min="0" max="240" step="1"></div>
+            <div><label for="km">Distance (km)</label>
+              <input id="km" type="number" inputmode="decimal" min="0" max="200" step="0.1"></div>
+          </div>
+          <button class="primary" type="submit">Add response</button>
+        </form>
+        <p class="hint">Tab through the fields, Enter to add. Q1 gives you σ
+          (the spread of the data), Q2 gives you the prior on μ. The “own”
+          fields are optional — they become the data that updates the prior.</p>
+      </section>
+
+      <section class="card">
+        <h2>Or paste from a form</h2>
+        <label for="paste">ind low, ind high, avg low, avg high, own min, own km —
+          one person per line</label>
+        <textarea id="paste" spellcheck="false" placeholder="10, 60, 35, 55, 28, 14&#10;15, 70, 40, 60, 35, 22"></textarea>
+        <div class="bar">
+          <button class="ghost" id="doPaste" type="button">Import lines</button>
+          <button class="ghost" id="clear" type="button">Clear all</button>
+          <button class="ghost" id="saveCsv" type="button">Save CSV</button>
+        </div>
+        <p class="hint" id="pasteMsg"></p>
+      </section>
+    </div>
+
+    <!-- ───────── right: live view ───────── -->
+    <div>
+      <section class="card veil" id="veil" data-hidden="false">
+        <div class="veiled">
+          <div class="count">
+            <b id="n">0</b><span id="nlab">responses</span>
+            <span id="seedFlag" class="seeded" hidden>example data</span>
+          </div>
+
+          <dl class="stats">
+            <div class="stat"><dt>Q1 · sigma</dt><dd id="sig">—</dd></div>
+            <div class="stat"><dt>Q2 · mu0</dt><dd id="mu0">—</dd></div>
+            <div class="stat"><dt>Q2 · sd0</dt><dd id="sd0">—</dd></div>
+            <div class="stat"><dt>Room mean</dt><dd id="ybar">—</dd></div>
+            <div class="stat" id="postTile"><dt>Posterior mean</dt><dd id="post">—</dd></div>
+          </dl>
+
+          <p class="calc" id="calc">—</p>
+
+          <figure>
+            <svg id="ranges" viewBox="0 0 700 150" role="img"
+                 aria-label="Each participant's low-to-high range"></svg>
+            <figcaption>One row per participant. <b>Pale bar</b> = their Q1 range for
+              individual people. <b>Dark bar</b> = their Q2 range for the
+              average. The pale bars are wider — that is the whole point.</figcaption>
+          </figure>
+
+          <div class="views" role="group" aria-label="which distribution to show">
+            <button type="button" class="vbtn" data-view="both">Both</button>
+            <button type="button" class="vbtn" data-view="ind">Q1 · individuals</button>
+            <button type="button" class="vbtn" data-view="avg">Q2 · the average</button>
+            <span class="vspacer"></span>
+            <button type="button" class="vbtn pbtn" id="postBtn"
+                    aria-pressed="false">Posterior</button>
+          </div>
+
+          <figure>
+            <svg id="curves" viewBox="0 0 700 230" role="img"
+                 aria-label="Elicited prior for the average, spread of individuals, and posterior"></svg>
+            <figcaption id="curveCap">Pooled prior against the posterior after
+              updating with the room's own commutes.</figcaption>
+          </figure>
+        </div>
+        <div class="veil-msg" id="veilMsg" hidden>
+          <p>Aggregate hidden so nobody anchors on it before answering.</p>
+          <div><button class="ghost" id="revealBtn" type="button">Reveal to the room</button></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Paste into your slides</h2>
+        <pre id="rcode">—</pre>
+        <div class="bar">
+          <button class="ghost" id="copy" type="button">Copy R code</button>
+          <button class="ghost" id="hide" type="button">Hide aggregate</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ── state ──────────────────────────────────────────────────────────────
+  // Example rows so the console opens in a realistic working state. They are
+  // labelled as examples and the first real entry replaces them.
+  var SEED = [
+    {lo:30,hi:45,ilo:10,ihi:55,own:24,km:11},
+    {lo:40,hi:60,ilo:15,ihi:70,own:38,km:26},
+    {lo:25,hi:40,ilo: 8,ihi:50,own:15,km:4},
+    {lo:35,hi:55,ilo:12,ihi:60,own:31,km:19},
+    {lo:45,hi:70,ilo:20,ihi:75,own:42,km:31},
+    {lo:20,hi:35,ilo: 5,ihi:45,own:19,km:6},
+    {lo:30,hi:50,ilo:10,ihi:65,own:27,km:15},
+    {lo:40,hi:55,ilo:15,ihi:60,own:35,km:23}
+  ];
+  var state = {rows: SEED.slice(), seeded: true, revealed: true,
+               view: "both", showPost: false};
+  var db = null, docRef = null, downloads = null, muted = false;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var fmt = function(x,d){ return (x==null||!isFinite(x)) ? "—" : x.toFixed(d==null?1:d); };
+
+  // ── statistics ─────────────────────────────────────────────────────────
+  // Both questions are asked as 80% ranges, so both use the same divisor.
+  var Z = 2 * 1.2815515655446004;        // width of a central 80% interval, in sd
+  var COVERAGE = "80%";
+
+  // Q1 is about the PARAMETER mu. Pooling across the room: the room's prior
+  // variance = disagreement between people + the average person's own stated
+  // uncertainty about the average.
+  function pooled(rows){
+    var mids = rows.map(function(r){ return (r.lo + r.hi)/2; });
+    var n = mids.length;
+    if(!n) return null;
+    var mu = mids.reduce(function(a,b){return a+b;},0)/n;
+    var between = n>1 ? mids.reduce(function(a,m){return a+(m-mu)*(m-mu);},0)/(n-1) : 0;
+    var within = rows.reduce(function(a,r){
+      var s=(r.hi-r.lo)/Z; return a+s*s; },0)/n;
+    return {mu: mu, sd: Math.sqrt(between + within), n: n,
+            between: Math.sqrt(between), within: Math.sqrt(within)};
+  }
+
+  // Q2 is about the OBSERVATIONS. Each person's range implies a sigma;
+  // we average those. This is NOT uncertainty about mu - it is the spread
+  // of the data itself, and it is the thing people most often conflate.
+  function elicitedSigma(rows){
+    var sds = rows.filter(function(r){
+        return typeof r.ilo === "number" && typeof r.ihi === "number" &&
+               isFinite(r.ilo) && isFinite(r.ihi) && r.ihi > r.ilo; })
+      .map(function(r){ return (r.ihi - r.ilo)/Z; });
+    if(!sds.length) return null;
+    var m = sds.reduce(function(a,b){return a+b;},0)/sds.length;
+    var lo = rows.filter(function(r){ return typeof r.ilo === "number"; })
+                 .map(function(r){ return r.ilo; });
+    var hi = rows.filter(function(r){ return typeof r.ihi === "number"; })
+                 .map(function(r){ return r.ihi; });
+    return {sigma: m, n: sds.length,
+            meanLo: lo.reduce(function(a,b){return a+b;},0)/lo.length,
+            meanHi: hi.reduce(function(a,b){return a+b;},0)/hi.length};
+  }
+
+  function roomData(rows){
+    return rows.map(function(r){ return r.own; })
+               .filter(function(v){ return typeof v === "number" && isFinite(v) && v>0; });
+  }
+
+  // Conjugate normal update with sigma plugged in from the room's own spread.
+  function posterior(pri, y){
+    if(!pri || y.length < 2) return null;
+    var n = y.length;
+    var ybar = y.reduce(function(a,b){return a+b;},0)/n;
+    var s2 = y.reduce(function(a,v){return a+(v-ybar)*(v-ybar);},0)/(n-1);
+    var s = Math.sqrt(s2) || 1;
+    var prec = 1/(pri.sd*pri.sd) + n/s2;
+    var mu = (pri.mu/(pri.sd*pri.sd) + n*ybar/s2)/prec;
+    return {mu: mu, sd: Math.sqrt(1/prec), ybar: ybar, s: s, n: n};
+  }
+
+  // ── drawing ────────────────────────────────────────────────────────────
+  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+  function domain(rows, pri, pos, sig){
+    var lo = Infinity, hi = -Infinity;
+    rows.forEach(function(r){
+      lo = Math.min(lo, r.lo); hi = Math.max(hi, r.hi);
+      if(typeof r.ilo === "number") lo = Math.min(lo, r.ilo);
+      if(typeof r.ihi === "number") hi = Math.max(hi, r.ihi);
+    });
+    if(sig && pri){ lo = Math.min(lo, pri.mu - 3*sig.sigma);
+                    hi = Math.max(hi, pri.mu + 3*sig.sigma); }
+    roomData(rows).forEach(function(v){ lo = Math.min(lo, v); hi = Math.max(hi, v); });
+    if(pri){ lo = Math.min(lo, pri.mu-3*pri.sd); hi = Math.max(hi, pri.mu+3*pri.sd); }
+    if(pos){ lo = Math.min(lo, pos.mu-4*pos.sd); hi = Math.max(hi, pos.mu+4*pos.sd); }
+    if(!isFinite(lo)){ lo = 10; hi = 70; }                 // nothing entered yet
+    lo = Math.max(0, Math.floor((lo-5)/10)*10);
+    hi = Math.ceil((hi+5)/10)*10;
+    if(hi - lo < 40) hi = lo + 40;                          // keep the axis readable
+    return [lo, hi];
+  }
+
+  function el(tag, attrs, text){
+    var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    if(text != null) e.textContent = text;
+    return e;
+  }
+
+  function axis(svg, d, W, L, R, yBase){
+    var ink = css("--muted"), line = css("--line");
+    svg.appendChild(el("line",{x1:L,y1:yBase,x2:W-R,y2:yBase,stroke:line,"stroke-width":1}));
+    var step = (d[1]-d[0]) > 90 ? 20 : 10;
+    for(var v=d[0]; v<=d[1]+.001; v+=step){
+      var x = L + (v-d[0])/(d[1]-d[0])*(W-L-R);
+      svg.appendChild(el("line",{x1:x,y1:yBase,x2:x,y2:yBase+4,stroke:line,"stroke-width":1}));
+      svg.appendChild(el("text",{x:x,y:yBase+17,"text-anchor":"middle","font-size":11,
+        fill:ink,"font-family":"var(--font)"}, String(Math.round(v))));
+    }
+    svg.appendChild(el("text",{x:(L+W-R)/2,y:yBase+34,"text-anchor":"middle","font-size":11,
+      fill:ink,"font-family":"var(--font)"}, "minutes, one way"));
+  }
+
+  function drawRanges(rows, d){
+    var svg = $("ranges"); svg.textContent = "";
+    var W=700, L=34, R=18, TOP=12, BOT=42;
+    var H = Math.max(76, TOP + rows.length*11 + BOT);
+    svg.setAttribute("viewBox","0 0 "+W+" "+H);
+    var yBase = H - BOT + 8;
+    var sx = function(v){ return L + (v-d[0])/(d[1]-d[0])*(W-L-R); };
+    var accent = css("--accent"), ink2 = css("--ink-2");
+    rows.forEach(function(r,i){
+      var y = TOP + i*11 + 5;
+      // Q2 first, underneath: the wide one
+      if(typeof r.ilo === "number" && typeof r.ihi === "number")
+        svg.appendChild(el("line",{x1:sx(r.ilo),y1:y,x2:sx(r.ihi),y2:y,
+          stroke:ink2,"stroke-width":7,"stroke-linecap":"round",opacity:.20}));
+      // Q1 on top: the narrow one
+      svg.appendChild(el("line",{x1:sx(r.lo),y1:y,x2:sx(r.hi),y2:y,
+        stroke:ink2,"stroke-width":4,"stroke-linecap":"round",opacity:.75}));
+      svg.appendChild(el("circle",{cx:sx((r.lo+r.hi)/2),cy:y,r:2.6,fill:accent}));
+      if(typeof r.own === "number" && isFinite(r.own) && r.own>0)
+        svg.appendChild(el("path",{d:"M"+sx(r.own)+" "+(y-4)+"v8",
+          stroke:accent,"stroke-width":1.6,opacity:.9}));
+    });
+    axis(svg, d, W, L, R, yBase);
+  }
+
+  function normPath(mu, sd, d, sx, yTop, yBase){
+    var pts=[], i, x, y, peak = 1;
+    for(i=0;i<=240;i++){
+      x = d[0] + (d[1]-d[0])*i/240;
+      y = Math.exp(-0.5*Math.pow((x-mu)/sd,2));
+      pts.push([sx(x), yBase - y/peak*(yBase-yTop)]);
+    }
+    return "M" + pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join("L");
+  }
+
+  function drawCurves(pri, pos, d, sig, view, showPost){
+    var svg = $("curves"); svg.textContent = "";
+    var W=700, H=230, L=34, R=18, TOP=18, yBase=H-46;
+    svg.setAttribute("viewBox","0 0 "+W+" "+H);
+    var sx = function(v){ return L + (v-d[0])/(d[1]-d[0])*(W-L-R); };
+    var ink2 = css("--ink-2"), accent = css("--accent"), muted = css("--muted");
+    var wantInd = (view !== "avg"), wantAvg = (view !== "ind");
+    if(pri && sig && wantInd){
+      // Q1: the spread of individual commutes the room believes in
+      var o = normPath(pri.mu, sig.sigma, d, sx, TOP, yBase);
+      svg.appendChild(el("path",{d:o,fill:"none",stroke:muted,"stroke-width":2,
+        "stroke-dasharray": view === "ind" ? "0" : "5 4",
+        "stroke-width": view === "ind" ? 2.6 : 2}));
+      if(view === "ind")
+        svg.appendChild(el("path",{d:o+"L"+sx(d[1])+","+yBase+"L"+sx(d[0])+","+yBase+"Z",
+          fill:muted,opacity:.14}));
+      svg.appendChild(el("text",{x:sx(Math.min(d[1]-2, pri.mu + 2.1*sig.sigma)),
+        y:yBase-16,"text-anchor":"middle","font-size":10,fill:muted,
+        "font-family":"var(--font)"}, "individual commutes (Q1)"));
+    }
+    if(pri && wantAvg){
+      var p = normPath(pri.mu, pri.sd, d, sx, TOP, yBase);
+      svg.appendChild(el("path",{d:p+"L"+sx(d[1])+","+yBase+"L"+sx(d[0])+","+yBase+"Z",
+        fill:ink2,opacity:.16}));
+      svg.appendChild(el("path",{d:p,fill:"none",stroke:ink2,"stroke-width":2.2}));
+      var q1x = Math.min(sx(pri.mu + 1.6*pri.sd), W - R - 60);
+      svg.appendChild(el("text",{x:q1x,y:TOP+2,"text-anchor":"middle","font-size":11,
+        fill:ink2,"font-family":"var(--font)"}, "prior on the average (Q2)"));
+    }
+    if(pos && showPost){
+      var q = normPath(pos.mu, pos.sd, d, sx, TOP, yBase);
+      svg.appendChild(el("path",{d:q+"L"+sx(d[1])+","+yBase+"L"+sx(d[0])+","+yBase+"Z",
+        fill:accent,opacity:.18}));
+      svg.appendChild(el("path",{d:q,fill:"none",stroke:accent,"stroke-width":2.6}));
+      svg.appendChild(el("line",{x1:sx(pos.mu),y1:TOP+6,x2:sx(pos.mu),y2:yBase,
+        stroke:accent,"stroke-width":1,"stroke-dasharray":"3 3"}));
+      var lx = Math.min(Math.max(sx(pos.mu), L+46), W-R-46);
+      svg.appendChild(el("text",{x:lx,y:TOP+2,"text-anchor":"middle","font-size":11,
+        fill:accent,"font-family":"var(--font)"}, "posterior"));
+    }
+    if(!pri)
+      svg.appendChild(el("text",{x:W/2,y:H/2,"text-anchor":"middle","font-size":13,
+        fill:muted,"font-family":"var(--font)"}, "Add responses to see the prior take shape"));
+    axis(svg, d, W, L, R, yBase);
+  }
+
+  // ── R export ───────────────────────────────────────────────────────────
+  function rCode(pri, pos, rows, sig){
+    if(!pri) return "—";
+    var y = roomData(rows);
+    var L = [];
+    L.push("# Paste these four numbers into the setup chunk of Slides_Part1.qmd");
+    L.push("# Elicited in the room, n = " + pri.n + " participants");
+    L.push("");
+    if(sig){
+      L.push("# Q1 - how spread out are INDIVIDUAL commutes?  -> prior on sigma");
+      L.push("ind_low  <- " + Math.round(sig.meanLo));
+      L.push("ind_high <- " + Math.round(sig.meanHi));
+      L.push("");
+    }
+    L.push("# Q2 - where is the AVERAGE?  -> prior on mu");
+    L.push("mu_low   <- " + Math.round(pri.mu - pri.sd*Z/2));
+    L.push("mu_high  <- " + Math.round(pri.mu + pri.sd*Z/2));
+    L.push("");
+    L.push("# which give:");
+    L.push("#   mu_prior    = " + pri.mu.toFixed(1));
+    L.push("#   sd_prior    = " + pri.sd.toFixed(1) +
+           "   (between-person " + pri.between.toFixed(1) +
+           ", within-person " + pri.within.toFixed(1) + ")");
+    if(sig) L.push("#   sigma_prior = " + sig.sigma.toFixed(1) +
+                   "   (from " + sig.n + " answers to Q1)");
+    L.push("");
+    L.push("Mod_C1 <- brm(");
+    L.push("  CommuteTime ~ 1,");
+    L.push("  data  = CommuteData,");
+    L.push("  prior = c(");
+    L.push("    prior(normal(" + pri.mu.toFixed(1) + ", " + pri.sd.toFixed(1) + "), class = Intercept),");
+    L.push("    prior(lognormal(" + (sig ? Math.log(sig.sigma).toFixed(2) : "2.5") + ", 0.3), class = sigma)");
+    L.push("  ),");
+    L.push("  backend = \"cmdstanr\", seed = 1975");
+    L.push(")");
+    if(y.length){
+      L.push("");
+      L.push("# The room's own commutes");
+      L.push("RoomData <- tibble::tibble(");
+      L.push("  CommuteTime = c(" + y.join(", ") + "),");
+      var km = rows.filter(function(r){ return typeof r.own==="number" && r.own>0; })
+                   .map(function(r){ return (typeof r.km==="number" && isFinite(r.km) && r.km>0)
+                                            ? r.km : "NA"; });
+      L.push("  Distance    = c(" + km.join(", ") + ")");
+      L.push(")");
+    }
+    if(pos){
+      L.push("");
+      L.push("# Conjugate check: posterior mu = " + pos.mu.toFixed(1) +
+             "  (sd " + pos.sd.toFixed(2) + ")");
+    }
+    return L.join("\n");
+  }
+
+  // ── render ─────────────────────────────────────────────────────────────
+  function render(){
+    var rows = state.rows;
+    var pri = pooled(rows);
+    var sig = elicitedSigma(rows);
+    var y = roomData(rows);
+    var pos = posterior(pri, y);
+    var d = domain(rows, pri, pos, sig);
+
+    $("n").textContent = rows.length;
+    $("nlab").textContent = rows.length === 1 ? "response" : "responses";
+    $("seedFlag").hidden = !state.seeded;
+
+    $("mu0").innerHTML = pri ? fmt(pri.mu) + ' <small>min</small>' : "—";
+    $("sd0").innerHTML = pri ? fmt(pri.sd) + ' <small>min</small>' : "—";
+    $("sig").innerHTML = sig
+      ? fmt(sig.sigma) + ' <small>min · n=' + sig.n + '</small>'
+      : '<small>no Q2 answers yet</small>';
+
+    $("calc").textContent = pri
+      ? "an " + COVERAGE + " range reaches \u00b1" + (Z/2).toFixed(2)
+        + " sd either side of the centre (cf. \u00b11.96 for 95%),\n"
+        + "so it is " + Z.toFixed(3) + " sd WIDE -- and a low-high pair gives a width,\n"
+        + "not a half-width, so sd = width / " + Z.toFixed(3) + "\n"
+        + (sig ? "Q1  sigma = mean((high - low) / " + Z.toFixed(3) + ") = " + fmt(sig.sigma)
+                 + "   (mean range " + fmt(sig.meanLo, 0) + "-" + fmt(sig.meanHi, 0) + ")\n"
+               : "Q1  -\n")
+        + "Q2  mu0 = " + fmt(pri.mu) + "   sd0 = sqrt(between " + fmt(pri.between)
+        + "^2 + within " + fmt(pri.within) + "^2) = " + fmt(pri.sd)
+      : "—";
+    $("ybar").innerHTML = y.length
+      ? fmt(y.reduce(function(a,b){return a+b;},0)/y.length) + ' <small>n=' + y.length + '</small>'
+      : '<small>no own-commute data yet</small>';
+    $("post").innerHTML = pos ? fmt(pos.mu) + ' <small>± ' + fmt(pos.sd,2) + '</small>' : "—";
+    $("postTile").hidden = !state.showPost;
+
+    Array.prototype.forEach.call(document.querySelectorAll(".vbtn[data-view]"), function(b){
+      b.setAttribute("aria-pressed", b.dataset.view === state.view ? "true" : "false");
+    });
+    $("postBtn").setAttribute("aria-pressed", state.showPost ? "true" : "false");
+    $("postBtn").textContent = state.showPost ? "Posterior shown" : "Posterior hidden";
+
+    drawRanges(rows, d);
+    drawCurves(pri, pos, d, sig, state.view, state.showPost);
+    var cap = {
+      both: "Q1 (dashed, wide) is the spread of individual commutes. Q2 (solid, narrow) " +
+            "is our uncertainty about the average. Same centre, different meaning.",
+      ind:  "Q1 only — where the room thinks individual commutes fall. This is a " +
+            "statement about the data, and it does not shrink with more data.",
+      avg:  "Q2 only — where the room thinks the average is. This is a statement " +
+            "about a parameter, and it does shrink as observations arrive."
+    }[state.view];
+    if(state.showPost && pos)
+      cap += "  Posterior after " + pos.n + " commutes from the room (σ plugged in at " +
+             fmt(pos.s) + " min).";
+    $("curveCap").textContent = cap;
+    $("rcode").textContent = rCode(pri, pos, rows, sig);
+
+    $("veil").dataset.hidden = state.revealed ? "false" : "true";
+    $("veilMsg").hidden = state.revealed;
+    $("hide").textContent = state.revealed ? "Hide aggregate" : "Show aggregate";
+  }
+
+  // ── persistence (db when available, localStorage otherwise) ────────────
+  function persist(){
+    if(docRef){ docRef.set({rows: state.rows, seeded: state.seeded, revealed: state.revealed,
+                            view: state.view, showPost: state.showPost})
+      .catch(function(){ note("not saved — working locally"); }); }
+    try{ localStorage.setItem("priorConsole", JSON.stringify(state)); }catch(e){}
+  }
+  function note(msg){ $("store").textContent = msg; }
+
+  function adopt(next){
+    if(!next || !Array.isArray(next.rows)) return;
+    state.rows = next.rows;
+    state.seeded = !!next.seeded;
+    state.revealed = next.revealed !== false;
+    if(next.view) state.view = next.view;
+    state.showPost = next.showPost === true;
+    render();
+  }
+
+  // ── actions ────────────────────────────────────────────────────────────
+  function add(r){
+    if(state.seeded){ state.rows = []; state.seeded = false; }
+    state.rows.push(r); persist(); render();
+  }
+
+  $("entry").addEventListener("submit", function(e){
+    e.preventDefault();
+    var lo = parseFloat($("lo").value), hi = parseFloat($("hi").value);
+    if(!isFinite(lo) || !isFinite(hi)) return;
+    if(hi < lo){ var t = lo; lo = hi; hi = t; }
+    var ilo = parseFloat($("ilo").value), ihi = parseFloat($("ihi").value);
+    if(isFinite(ilo) && isFinite(ihi) && ihi < ilo){ var t2 = ilo; ilo = ihi; ihi = t2; }
+    var own = parseFloat($("own").value), km = parseFloat($("km").value);
+    add({lo: lo, hi: hi,
+         ilo: isFinite(ilo) ? ilo : null,
+         ihi: isFinite(ihi) ? ihi : null,
+         own: isFinite(own) && own > 0 ? own : null,
+         km:  isFinite(km)  && km  > 0 ? km  : null});
+    ["ilo","ihi","lo","hi","own","km"].forEach(function(id){ $(id).value = ""; });
+    $("ilo").focus();
+  });
+
+  $("doPaste").addEventListener("click", function(){
+    var lines = $("paste").value.split(/\r?\n/).map(function(s){ return s.trim(); })
+                 .filter(Boolean);
+    var added = 0, skipped = 0;
+    lines.forEach(function(ln){
+      var p = ln.split(/[,;\t]+/).map(function(s){ return parseFloat(s); });
+      if(p.length < 4 || !isFinite(p[2]) || !isFinite(p[3])){ skipped++; return; }
+      var ilo = p[0], ihi = p[1];
+      var lo = p[2], hi = p[3];
+      if(hi < lo){ var t = lo; lo = hi; hi = t; }
+      if(isFinite(ilo) && isFinite(ihi) && ihi < ilo){ var t2 = ilo; ilo = ihi; ihi = t2; }
+      add({lo: lo, hi: hi,
+           ilo: isFinite(ilo) ? ilo : null,
+           ihi: isFinite(ihi) ? ihi : null,
+           own: isFinite(p[4]) && p[4] > 0 ? p[4] : null,
+           km:  isFinite(p[5]) && p[5] > 0 ? p[5] : null});
+      added++;
+    });
+    $("pasteMsg").textContent = added + " imported" +
+      (skipped ? ", " + skipped + " line" + (skipped>1?"s":"") + " skipped (need at least low, high)" : "");
+    if(added) $("paste").value = "";
+  });
+
+  $("clear").addEventListener("click", function(){
+    if(!state.rows.length) return;
+    if(!confirm("Remove all " + state.rows.length + " responses?")) return;
+    state.rows = []; state.seeded = false; persist(); render();
+    $("pasteMsg").textContent = "";
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".vbtn[data-view]"), function(b){
+    b.addEventListener("click", function(){
+      state.view = b.dataset.view; persist(); render();
+    });
+  });
+
+  $("postBtn").addEventListener("click", function(){
+    state.showPost = !state.showPost; persist(); render();
+  });
+
+  $("hide").addEventListener("click", function(){
+    state.revealed = !state.revealed; persist(); render();
+  });
+  $("revealBtn").addEventListener("click", function(){
+    state.revealed = true; persist(); render();
+  });
+
+  $("copy").addEventListener("click", function(){
+    var txt = $("rcode").textContent;
+    if(txt === "—") return;
+    var btn = $("copy");
+    navigator.clipboard.writeText(txt).then(function(){
+      btn.textContent = "Copied";
+      setTimeout(function(){ btn.textContent = "Copy R code"; }, 1400);
+    }).catch(function(){
+      var r = document.createRange(); r.selectNodeContents($("rcode"));
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      btn.textContent = "Selected — press ⌘C";
+      setTimeout(function(){ btn.textContent = "Copy R code"; }, 2200);
+    });
+  });
+
+  $("saveCsv").addEventListener("click", function(){
+    var csv = "ind_low,ind_high,avg_low,avg_high,own_minutes,own_km\n" +
+      state.rows.map(function(r){
+        return [r.ilo==null?"":r.ilo, r.ihi==null?"":r.ihi, r.lo, r.hi,
+                r.own==null?"":r.own, r.km==null?"":r.km].join(",");
+      }).join("\n") + "\n";
+    var url = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
+    var a = document.createElement("a");
+    a.href = url; a.download = "room_priors.csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  // ── boot ───────────────────────────────────────────────────────────────
+  try{
+    var cached = localStorage.getItem("priorConsole");
+    if(cached) adopt(JSON.parse(cached));
+  }catch(e){}
+  render();
+
+  if(window.claude && typeof window.claude.use === "function"){
+    window.claude.use("db").then(function(d){
+      if(!d) { note("saved on this device only"); return; }
+      db = d; docRef = db.doc("room/current");
+      note("synced");
+      docRef.onSnapshot(function(snap){
+        var v = snap && (snap.data ? snap.data : snap);
+        if(v && Array.isArray(v.rows)) adopt(v);
+      }, function(){ note("saved on this device only"); });
+    }).catch(function(){ note("saved on this device only"); });
+
+
+  } else {
+    note("saved on this device only");
+  }
+
+  window.addEventListener("resize", function(){
+    clearTimeout(window.__rz); window.__rz = setTimeout(render, 150);
+  });
+})();
+</script>
+
+</body>
+</html>

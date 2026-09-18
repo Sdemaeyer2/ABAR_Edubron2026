@@ -1,0 +1,26 @@
+---
+title: "Introduction to Bayesian Analyses with R (Edubron, Antwerp 2026)"
+---
+
+
+## Welcome
+
+In a broad range of scientific disciplines, Bayesian statistics are gaining popularity. Yet the basic training of most researchers only introduces the frequentist framework for statistical inference. This workshop aims to introduce Bayesian statistics in a practical way, laying a foundation for crucial concepts in the Bayesian realm.
+ 
+Participants will be introduced to a workflow for Bayesian analyses in the open-source environment `R`. The starting point will be the linear model (aka regression model) and we can extend this to linear mixed models. 
+
+The central piece of software will be the `brms` package in `R`, that bridges the typical `R` modelling language with `Stan`, which is a probabilistic programming language built to estimate models within the Bayesian framework. 
+
+Given that a workflow in `R` will be introduced, it is advised that participants have some experience working with `R`. Moreover, packages will be used from the tidyverse (e.g., `dplyr`, `ggplot2`, …). Therefore, we advise participants to acknowledge themselves with these packages. For more info on how to prepare for the workshop, go to the [Prerequisites](/Prerequisites/Prerequisites.qmd). 
+
+
+## Schedule
+
+| When?  | Where    |
+|:--------|:-------|
+| Thursday 1st of October (9am - 4pm) | S.S.004  |
+| Friday 2nd of October (9am - 4pm) | S.S.004 |
+
+
+This site bundles all the material used for the course. Or you can download all the materials on <a href="https://github.com/Sdemaeyer2/ABAR_Edubron2026" target="_blank">the github page </a>. 
+

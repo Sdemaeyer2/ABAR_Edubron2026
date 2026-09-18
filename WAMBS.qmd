@@ -1,0 +1,30 @@
+---
+title: "WAMBS template"
+format: html
+---
+
+## Info
+
+During the course we introduced the WAMBS (when to Worry and how to Avoid the Misuse of Bayesian Statistics) check-list as a tool to structure your thinking and checking of your Bayesian model(s). 
+
+To see an example of this WAMBS checklist applied to a fitted model, click <a href="WAMBS_template/WAMBS_workflow_MarathonData.html" target="blank">here</a>.
+
+::: {.callout-note}
+## About the dataset in the template
+The template walks through an older example on marathon times, while the
+workshop itself uses the commuting data. That is deliberate: the WAMBS workflow
+is identical whatever the dataset, and seeing it on a second example makes the
+steps easier to transfer to your own model. Every step in the template applies
+unchanged to the commuting model.
+:::
+
+The Quarto document to make this report can be found <a href="WAMBS_template/WAMBS_workflow_MarathonData.qmd" target="blank">here</a> (right-click to save).
+
+If you want to render the Quarto document and have the references in there, you also need to download the `references.bib` file and store it in the same folder as the Quarto document. The references file can be downloaded <a href="WAMBS_template/references.bib" target="blank">here</a> (right-click to save).
+
+## References and resources
+
+Depaoli, S., & Van de Schoot, R. (2017). Improving transparency and replication in Bayesian statistics: The WAMBS-Checklist. Psychological methods, 22(2), 240.
+
+Van de Schoot, R., Veen, D., Smeets, L., Winter, S. D., & Depaoli, S. (2020). A tutorial on using the WAMBS checklist to avoid the misuse of Bayesian statistics. Small Sample Size Solutions: A Guide for Applied Researchers and Practitioners; van de Schoot, R., Miocevic, M., Eds, 30-49.
+

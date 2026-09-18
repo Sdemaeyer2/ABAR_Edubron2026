@@ -1,0 +1,273 @@
+# Commute example — what changed, and how to run the live prior
+
+## Before the workshop (once)
+
+1. Open the `.Rproj` and run:
+
+   ```r
+   source("R_code/fit_models.R")
+   ```
+
+   It builds `CommuteData.RData` and fits the five model objects the decks
+   load. ~10–20 minutes, mostly Stan compiling. It skips anything already on
+   disk; set `FORCE <- TRUE` at the top to refit.
+
+2. Render the decks to check:
+
+   ```bash
+   quarto render Presentations/Part1/Slides_Part1.qmd
+   quarto render Presentations/Part2/Slides_Part2.qmd
+   ```
+
+## The live prior — run of show
+
+### Two questions, not one
+
+This is the heart of it. The room is asked **two separate things**, both phrased
+as 80% ranges so the same arithmetic serves both:
+
+| | question | what it is | what it gives |
+|:--|:--|:--|:--|
+| **Q1** | "8 out of 10 people here commute between ___ and ___" | a statement about the **observations** | `sigma_prior` |
+| **Q2** | "If we averaged everyone's commute in this room, what would that average be?" | a statement about a **parameter** | `mu_prior`, `sd_prior` |
+
+Concrete first, abstraction second: thinking about the people sitting next to
+you is easy, and it makes the step up to "now the average" feel like a real
+change of object rather than a rewording.
+
+They are not the same question, and conflating them is the classic beginner
+error. Q1's range comes out roughly twice as wide as Q2's — the slide puts the
+two curves side by side, Q1 on the left, so the room sees that immediately.
+
+Everything downstream reads four numbers, set in one chunk near the top of
+`Slides_Part1.qmd`:
+
+```r
+COVERAGE <- 0.80
+Z <- 2 * qnorm(0.5 + COVERAGE / 2)     # 2.563
+
+ind_low  <- 10    # Q1 - individuals
+ind_high <- 55
+mu_low   <- 35    # Q2 - the average
+mu_high  <- 55
+```
+
+`mu_prior`, `sd_prior` and `sigma_prior` derive from those, and every slide that
+uses them prints the arithmetic in small print underneath, with the live numbers.
+Change the four, re-render, and the whole deck is about the room's own priors.
+
+### Where the console lives
+
+There are two copies and neither needs rendering.
+
+**The hosted one** is a page on claude.ai. Find it in your artifacts gallery at
+`claude.ai/code/artifacts`, or from the card in the chat where it was made.
+Bookmark it. It syncs across your devices and remembers entries between
+sessions, but it needs a network connection and your Claude login.
+
+**The offline one** is `Prior_console/prior_console_offline.html`, right
+here in the workshop folder. Double-click it and it opens in your browser
+straight from disk. No network, no login, nothing to render. It keeps its data
+in that browser's local storage, so entries survive a page reload but do not
+follow you to another machine.
+
+For a live room, open the offline copy. It has one less thing that can fail at
+09:05 in a room you have never presented in. Have it open in a second browser
+tab before you start.
+
+### During Part 1
+
+The elicitation now opens the example — it happens **before** anyone sees the
+frequentist model, so nobody is anchored by a fitted number.
+
+| Slide | What you do |
+|:--|:--|
+| *Why statistical inference?* | The usual opener: population, sample, uncertainty. |
+| **Write it down** (navy slide) | Everyone writes down **two** ranges on paper — Q1 and Q2. No discussion. The word "prior" has not been used yet, deliberately. |
+| *(you leave the deck)* | Open the console. Go round the room and type each pair in. 20 people ≈ 2 minutes. Keep the aggregate hidden with **Hide aggregate** while you collect. |
+| | Hit **Reveal to the room** and show the console. Use the three view tabs above the chart to take it in stages: **Q1 · individuals** alone, then **Q2 · the average** alone, then **Both** overlaid. Leave the **Posterior** button off — it starts hidden, and showing it here gives the game away. |
+| | **Copy R code** — it emits `mu_low`/`mu_high`/`ind_low`/`ind_high` ready to paste into the deck chunk, plus the derived values as comments so you can sanity-check them out loud. |
+| **What the room believes** | Back in the deck. Two panels and one line, nothing else: Q1 (individuals, wide) on the left, Q2 (the average, narrow) on the right. *Same centre, very different width, and they mean different things.* |
+| **What the two numbers mean** | The interpretation, on its own slide: what each of the two statements is about, and the arithmetic in small print. |
+| *an example* → *Frequentistic…* → *Bayesian…* | The existing detour, unchanged. They now meet the frequentist machinery **after** having already produced a belief of their own. |
+| **Prior** (in Bayesian Inference) | The payoff: "you already did this — the range you wrote down was a prior on μ." |
+| **Let's apply this idea** → grid | The worked example uses *their* priors on μ and σ. Two combos (C1, C2) are scored by hand, then the grid does it systematically. A note on the grid slide says why we switch to `log = TRUE`. |
+| **Grid approximation applied** × 3 | The 2-D posterior, then the marginal of μ and of σ. On all three, C1 and C2 are marked and labelled — C1 in UA blue, C2 in UA red. |
+| **Watching the data take over** | Prior → after 5 → after 10. Five observations do most of the work. |
+
+### If re-rendering mid-session feels risky
+
+It takes about a minute and the models are cached, so it usually isn't. But if
+you'd rather not: leave the placeholder numbers in the deck, and do the live
+part entirely in the console, switching to it at the three moments above. The
+deck then tells the generic version of the story and the console tells the
+room's version.
+
+### If the room is small
+
+Below about 8 people the pooled spread gets unstable — one wide range
+dominates. Use the median low and median high instead; the console shows the
+individual bars so you can see whether that's happening.
+
+## What changed in the materials
+
+| File | Change |
+|:--|:--|
+| `Slides_Part1.qmd` | 40 edits. Marathon → commuting throughout, plus 4 new slides: *Write it down*, *Your prior pooled*, *What does that prior actually say?*, *Watching the data take over*. |
+| `Slides_Part2.qmd` | 16 edits. `CommuteTimes_Mod2`, `Distance_c` + `Departure_c` everywhere, a real slope prior `normal(1.5, 0.5)` instead of `normal(0,10)`. |
+| `Slides_Part3.qmd` | 3 stale marathon comments fixed (they were wrong before — the code operates on `FirstVersion_GM`). |
+| `Part1.qmd`, `Part2.qmd` | Data section and sources rewritten. |
+| `WAMBS.qmd`, `Slides_Part2.qmd` | A note explaining that the WAMBS template deliberately still uses the marathon example. |
+| `Presentations/CommuteData.csv`, `Data/CommuteData.csv` | The dataset. |
+| `R_code/` | `fit_models.R` (fits every model the slides load), `simulate_commute.R` (regenerates the dataset). |
+| `Setup/` | This file and `INTEGRATION_PLAN.md`. |
+| `Prior_console/` | `prior_console_offline.html` — the elicitation console. |
+| `_archive/` | Superseded material (Zurich branding, marathon-era models, the patch scripts). Not in git. |
+
+## Models
+
+- **Part 1 exercise:** `CommuteTime ~ 1`, then `CommuteTime ~ 1 + Distance_c + Departure_c`
+- **Part 2 workhorse:** the same two-predictor model
+
+`Distance_c` is distance centred on its mean (17.7 km); `Departure_c` is hours
+after 07:00. Both centred, so the intercept is "expected commute for an
+average-distance trip leaving at 7am" — about 26.5 minutes.
+
+Fitted by OLS for orientation: intercept 26.5, `Distance_c` 1.08 min/km
+(se 0.06), `Departure_c` 4.28 min per hour later (se 0.86), residual sd 5.2.
+
+### Why not `Distance + Mode`
+
+The first draft used travel mode as the second predictor. It doesn't work:
+cyclists only span 3–9 km and public-transport users 11–45 km, so mode and
+distance are badly confounded and the parallel-slopes model collapses both mode
+effects to a meaningless "+3 minutes". `DepartureHour` is clean, linear over the
+06:00–09:00 window, and everyone has a prior about it ("leaving an hour later
+costs you about 4 minutes"). `Mode` is still in the dataset — good for colouring
+the scatterplot and for a discussion about confounding, just not as a predictor
+in the headline model.
+
+## Loose ends
+
+- The WAMBS template (`WAMBS_workflow_MarathonData.qmd`, in two copies) still
+  uses marathon data by your choice. Both places that link to it now say so.
+- `R_code/Day2_code.R` and the `HOP_*.R` scripts still reference marathon.
+- None of the R code has been executed — there is no R in the session that
+  wrote it. `fit_models.R` is the first thing that will actually run it.
+
+
+## Why the elicitation asks two questions
+
+An earlier draft asked only for a range around "the average commute" and read it
+as an 80% interval for μ. Three things were wrong with that:
+
+1. **The question did not force the distinction.** Asked for "a low and a high"
+   about the average, many people answer with the range *typical people* fall
+   in — a statement about observations. In this dataset a genuine "most people"
+   range is roughly 4 to 54 minutes, while a credible interval for the mean of
+   20 people is far narrower. The two answers are indistinguishable in the
+   numbers, and the code converted both as if they were about μ.
+2. **The pooling inherited the confusion.** σ₀² = between-person disagreement +
+   mean within-person variance. If people answered in observations-mode, that
+   second term was the population σ, not uncertainty about μ.
+3. **σ was never elicited at all.** The prior predictive check used
+   `sigma ~ lognormal(log(12), 0.6)` — and 12 is the standard deviation of the
+   dataset. The prior was being set from the data, in a workshop about setting
+   priors before seeing data.
+
+Asking both questions fixes all three, and turns the bug into the lesson.
+
+## The divisor
+
+Both ranges are read as **80% central intervals**, so
+
+    sd = width / 2.563        where 2.563 = 2 × qnorm(0.90)
+
+That constant used to be hardcoded as `2.56` with nothing explaining it. It
+matters: the same two numbers read as a 50% range give an sd of 14.8, as a 95%
+range 5.1. The stated coverage is now part of the question the room is asked
+("a range you'd bet on 8 times out of 10"), and `COVERAGE` sits at the top of
+the deck if you want to change it.
+
+
+## The console's view tabs
+
+Above the curve chart:
+
+| control | what it does |
+|:--|:--|
+| **Both** | Q1 dashed and wide, Q2 solid and narrow, overlaid. The default. |
+| **Q1 · individuals** | only the spread of individual commutes, filled. Caption: *a statement about the data, and it does not shrink with more data.* |
+| **Q2 · the average** | only the prior on μ. Caption: *a statement about a parameter, and it does shrink as observations arrive.* |
+| **Posterior** | off by default. Toggling it on adds the posterior curve **and** the posterior stat tile. Leave it off during the elicitation — it is the answer to a question you have not asked yet. |
+
+The chosen view and the posterior setting persist across a page reload, so you
+can set them up before the session and they will be as you left them.
+
+
+## A slide-layout trap worth knowing
+
+Quarto's `::: aside` is positioned **absolutely** at the bottom of a reveal
+slide — it does not flow with the content. On a slide with a plot and several
+paragraphs it lands *on top of* the text, which is unreadable and does not show
+up in any structural check.
+
+The deck now uses `::: {.calcnote}` for anything longer than a line or two.
+That class is defined in `Presentations/edubron-slides.scss`, flows normally,
+and is styled as small print on a pale panel. `::: aside` is still used, but
+only for one- or two-line footnotes on slides that have room.
+
+If you add content to a slide that already carries an aside, check it renders.
+The three that were at risk (`What the room believes`, the `lm()` slide, and
+the prior predictive conclusion) have been fixed — by splitting the first into
+two slides, shortening the second's note, and converting the third to
+`.calcnote`.
+
+
+## Two things removed or corrected
+
+**The prior predictive check is gone.** Both "What does that prior actually
+say?" slides were removed — too early in Part 1 to land, and the machinery
+(simulating from the prior, judging the implied data) belongs with the WAMBS
+material in Part 2. The elicited σ from Q1 is still used: it is the prior on σ
+in the grid approximation.
+
+**The likelihood was being computed as a sum.** The two worked slides used
+`sum(dnorm(CT, mu, sigma))`. The likelihood of a dataset is the **product** of
+the per-observation densities, so those are now `prod(...)`.
+
+This was not cosmetic. With the sum, the two combos ranked the wrong way round:
+
+| combo | sum (wrong) | product (right) |
+|:--|--:|--:|
+| C1 μ=30, σ=13 — close to the data | 1.09e−04 | **3.64e−21** |
+| C2 μ=45, σ=18 — the room's prior centre | **5.46e−04** | 5.23e−22 |
+
+Under the sum, C2 won; under the correct product, C1 wins by about a factor of
+7, which is what the grid plot has always shown. The slide told the opposite
+story to the plot two slides later.
+
+The correct products are around 1e−18, so `options(scipen = 1000000)` had to go
+(it forced fixed notation and would have printed a wall of zeros). Why we move to logs — which is what the grid chunk was already doing with
+`dnorm(..., log = TRUE)` — is now a two-line note on the **Grid approximation**
+slide. That `sum()` is correct and was left alone: a sum of logs is a product of
+densities.
+
+## C1 / C2 made legible (18 Sep)
+
+The two hand-scored parameter combinations are now colour-coded and labelled
+everywhere they appear, instead of being unlabelled `blue` / `green` dotted
+lines that matched nothing else in the deck:
+
+- **C1** (μ = 30, σ = 13) — UA blue `#002e65`
+- **C2** (μ = 45, σ = 18) — UA red `#ea2c38`
+
+On the two marginal-posterior slides each dotted line carries a bold `C1` / `C2`
+label pinned to the top of the panel (`y = Inf`), so the tie back to the
+hand-calculated combos is visible without narration. On the 2-D grid plot the
+viridis fill is too dark for navy, so C1 is white and C2 is the palette's
+`#ff9aa2` red tint — the same red, lifted to stay readable on a dark ground.
+
+The **Those numbers are tiny** slide was removed as an unnecessary side-step;
+its one load-bearing sentence survives as a note on the grid slide. Part 1 is
+now 69 slides.

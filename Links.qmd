@@ -1,0 +1,61 @@
+---
+title: "Links"
+format: html
+---
+
+```{r}
+#| echo: false
+
+library(fontawesome)
+```
+
+## Reading tips
+
+Many books are written that discuss Bayesian modelling. Here you can find two books that I would suggest for learning more about Bayesian analyses.
+
+A first book is the book by <b>Ben Lambert</b>: <b>"A Student's Guide to Bayesian Statistics"</b>. This book is great if you want to learn more about the statistical theory behind Bayesian analyses and MCMC sampling. He succeeds in explaining these topics in a thorough conceptual way, without you getting lost in the mathematics and formulas. For me, this book was of great value!
+
+A big hit these days is the book by <b> Richard McElreath</b>: <b>"Statistical Rethinking. A Bayesian Course with examples in R and Stan" </b>. In this course, Richard McElreath introduces statistical reasoning from scratch, integrating three key components for good statistical thinking: DAGs, Bayesian statistics, and multi-level models. So, this book is more than solely a book about Bayesian models. The lectures of Richard McElreath based on this book can be found for free on YouTube. 
+
+## Some free online books `r fontawesome::fa("book")`
+
+-   John Kruschke's book <b>Doing Bayesian Data Analyses: a tutorial with R, Jags, and Stan </b>:
+
+<a href="https://nyu-cdsc.github.io/learningr/assets/kruschke_bayesian_in_R.pdf" target="blank">https://nyu-cdsc.github.io/learningr/assets/kruschke_bayesian_in_R.pdf</a>
+
+-   Bayes Rules!:
+
+<a href="https://www.bayesrulesbook.com/" target="blank">https://www.bayesrulesbook.com/</a>
+
+-   Or this book:
+
+<a href="https://vasishth.github.io/bayescogsci/book/"> https://vasishth.github.io/bayescogsci/book/ </a>
+
+
+
+## THE Podcast `r fontawesome::fa("podcast")`
+
+If you like running - like I do - this could be a great companion on your run! In this podcast different guests from different backgrounds discuss the power and reasoning behind Bayesian analyses and how Bayesian statistics are used in their field from Astronomy, over Psychology to Sports Analyses (and many more).
+
+<a href="https://www.learnbayesstats.com/">https://www.learnbayesstats.com/ </a>
+
+## Online learning material
+
+The research group of Rens van de Schoot (Utrecht University) publishes a lot on Bayesian statistics. They also developed a summer school. Their materials are also openly available at (you will notice how their way of sharing materials has inspired me :-))  
+
+<a href="https://utrechtuniversity.github.io/BayesianEstimation/#quick-overview">https://utrechtuniversity.github.io/BayesianEstimation/#quick-overview </a>
+
+## Some example papers
+
+Here are some references to articles reporting on Bayesian analyses. 
+
+Gijsen, M., Catrysse, L., De Maeyer, S., & Gijbels, D. (2024). Mapping cognitive processes in video-based learning by combining trace and think-aloud data. Learning and Instruction, 90, 101851. <a href="https://doi.org/10.1016/j.learninstruc.2023.101851" target="blank">https://doi.org/10.1016/j.learninstruc.2023.101851 </a>
+
+Roeser, J., De Maeyer, S., Leijten, M., & Van Waes, L. (2021). Modelling typing disfluencies as finite mixture process. Reading and Writing. <a href="https://doi.org/10.1007/s11145-021-10203-z" target="blank"> https://doi.org/10.1007/s11145-021-10203-z </a>
+
+## Article on Bayesian Evidence Interval
+
+During the course I mentioned a paper that criticises the ROPE + HDI rule and proposes an alternative for making decisions on hypotheses in the Bayesian realm. This is the reference:  
+
+Kelter, R. (2022), The evidence interval and the Bayesian evidence value: On a unified theory for Bayesian hypothesis testing and interval estimation. Br J Math Stat Psychol, 75: 550-592.  
+<a href="https://bpspsychub.onlinelibrary.wiley.com/doi/full/10.1111/bmsp.12267" target="blank"> https://doi.org/10.1111/bmsp.12267 </a>

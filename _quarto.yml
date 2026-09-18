@@ -1,0 +1,71 @@
+project:
+  type: website
+  render:
+    - index.qmd
+    - Prerequisites/Prerequisites.qmd
+    - Part1.qmd
+    - Part2.qmd
+    - Part3.qmd
+    - Part4.qmd
+    - WAMBS.qmd
+    - Links.qmd
+    - about.qmd
+    - Presentations/Part1/Slides_Part1.qmd
+    - Presentations/Part2/Slides_Part2.qmd
+    - Presentations/Part3/Slides_Part3.qmd
+    - Integrated_exercise/Exercise.qmd
+    - Integrated_exercise/Exercise_response.qmd
+
+profile:
+  default: en
+
+# WEBSITE ARCHITECTURE
+
+website:
+  favicon: "BAR_Edubron2026_Favicon.png"
+  page-navigation: true
+  back-to-top-navigation: true
+  reader-mode: true
+  page-footer:
+    right: "This page is built with ❤️ and [Quarto](https://quarto.org/)."
+    left: "&copy; CC-By Sven De Maeyer, 2026"
+  
+  sidebar:
+    logo: "BAR_Edubron2026.png"
+    pinned: true
+    align: center
+    search: true
+    tools:
+      - icon: github
+        href: https://github.com/Sdemaeyer2/ABAR_Edubron2026
+
+    style: "docked"
+    contents:
+      - href: index.qmd
+        text: Welcome
+      - href: Prerequisites/Prerequisites.qmd
+        text: Prerequisites
+      - href: Part1.qmd
+        text: Part1
+      - href: Part2.qmd
+        text: Part2
+      - href: Part3.qmd
+        text: Part3
+      - href: Part4.qmd
+        text: Part4
+      - href: WAMBS.qmd
+        text: WAMBS template
+      - href: Links.qmd
+        text: Links
+      - href: about.qmd
+        text: About me
+
+format:
+  html:
+    theme: [cosmo, theme.scss, _uantwerpen-brand.scss]
+    mainfont: "Atkinson Hyperlegible"
+    toc: true
+    code-copy: true
+    code-overflow: wrap
+
+
