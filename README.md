@@ -30,7 +30,7 @@ missing, run `source("R_code/fit_models.R")` once (10-20 minutes).
 | `Data/` | Datasets offered to participants for download |
 | `R_code/` | Scripts for participants, plus `fit_models.R` and `simulate_commute.R` |
 | `Integrated_exercise/` | Part 4 exercise, its answer key and models |
-| `WAMBS_template/` | The WAMBS checklist worked through on the marathon data |
+| `WAMBS_template/` | The WAMBS checklist worked through on the commuting model |
 | `Prior_console/` | Live prior-elicitation console used at the start of Part 1 |
 | `Setup/` | Run of show and the notes on how the commuting example is built |
 | `Prerequisites/` | Install instructions for participants |
@@ -51,7 +51,7 @@ It is also published with the site, so during the workshop it is reachable at
 ## Not in this repository
 
 `_archive/` holds superseded material - the Zurich 2026 branding and decks,
-marathon-era model objects, orphaned stylesheets and development scratch. It
+marathon-era data and models, orphaned stylesheets and development scratch. It
 stays on disk (and in OneDrive) but is excluded by `.gitignore`.
 
 ## Licence

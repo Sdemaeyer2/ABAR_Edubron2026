@@ -53,38 +53,29 @@ library(tidyverse)
 library(brms)
 library(bayesplot)
 
-# ── THE ROOM'S TWO ELICITED RANGES ──────────────────────────────────
-# Filled in live during the session from the elicitation console.
-# The values below are a realistic placeholder so the deck renders
-# before the workshop; replace them and re-render during the break.
+# ── THE ROOM ────────────────────────────────────────────────────────
+# Everything the room supplies - their two elicited ranges and their own
+# commuting times - is read from Data/room_2026.csv by this one file.
+# To use a different room, replace that CSV and re-render. Nothing in
+# this deck has a participant number typed into it.
 #
-# Both questions are asked as the SAME stated coverage, so one divisor
-# serves both. Q1 is about OBSERVATIONS, Q2 is about a PARAMETER.
+# Defines: COVERAGE, Z, ind_low/ind_high, sigma_prior, sigma_logsd,
+#          mu_low/mu_high, mu_prior, sd_prior, sd_between, sd_within,
+#          CT, ct_mean, ct_sd, C1_mu, C1_sigma, C2_mu, C2_sigma,
+#          GRID_MU, GRID_SIGMA, SIGMA_VIEW, N_ROOM, N_EARLY,
+#          ROOM_IS_REAL, ROOM_NOTE, ROOM_VERDICT
 
-COVERAGE <- 0.80
-Z <- 2 * qnorm(0.5 + COVERAGE / 2)     # 2.563 for an 80% central interval
-
-# Q1 - how spread out are INDIVIDUAL commutes?  -> prior on sigma
-ind_low     <- 10
-ind_high    <- 55
-sigma_prior <- (ind_high - ind_low) / Z
-sigma_logsd <- 0.30                    # how unsure we are about that spread
-
-# Q2 - where is the AVERAGE?  -> prior on mu
-mu_low   <- 35
-mu_high  <- 55
-mu_prior <- (mu_low + mu_high) / 2
-sd_prior <- (mu_high - mu_low) / Z
+source(here("R_code", "elicitation.R"))
 ```
 
 ## Welcome
 
 Let's get to know each other first!
 
--   what's your name?
--   a 1/2-minute pitch on your research
--   any experience with Bayesian inference?
--   what do you hope to learn?
+- what's your name?
+- a 1/2-minute pitch on your research
+- any experience with Bayesian inference?
+- what do you hope to learn?
 
 ## Outline
 
@@ -106,13 +97,13 @@ All material is on the on-line dashboard:
 
 You can find:
 
--   an overview of the course
+- an overview of the course
 
--   how to prepare
+- how to prepare
 
--   for each day the slides and datasets
+- for each day the slides and datasets
 
--   html slides can be exported to pdf in your browser (use the menu button bottom right)
+- html slides can be exported to pdf in your browser (use the menu button bottom right)
 
 # Statistical Inference
 
@@ -124,79 +115,6 @@ We want to learn more about [a population]{.hl} but we have [sample data]{.hl}!
 Therefore, we have [uncertainty]{.hl}
 :::
 
-## `r fontawesome::fa("pen", "white")` Write it down {background-color="#002e65" transition="slide-in"}
-
-Two questions. Write down both, before anyone says a number out loud.
-
-**1 — about individual people.** Think of the people sitting around you.
-[8 out of 10]{.hl} of them have a one-way commute between ___ and ___
-minutes.
-
-**2 — about the average.** Now forget individuals. If we averaged the commute
-of everyone in this room into a single number, what would that number be?
-Give a low and a high you would bet on [8 times out of 10]{.hl}.
-
-These are *not* the same question. Look at how different your two ranges are.
-
-::: aside
-Don't discuss it with your neighbour yet — we want *your* numbers, not the
-first ones you heard.
-:::
-
-## What the room believes
-
-```{r}
-#| echo: false
-#| fig-height: 3.5
-#| fig-width: 11
-X <- seq(0, 90, by = 0.25)
-
-curves <- rbind(
-  data.frame(x = X, d = dnorm(X, mu_prior, sigma_prior),
-             panel = "Q1  where do INDIVIDUAL commutes fall?   (observations)"),
-  data.frame(x = X, d = dnorm(X, mu_prior, sd_prior),
-             panel = "Q2  where is the AVERAGE?   (a parameter)")
-)
-
-# keep the panels in the order they were asked, not alphabetical
-curves$panel <- factor(curves$panel, levels = unique(curves$panel))
-
-ggplot(curves, aes(x, d)) +
-  geom_area(fill = "#002e65", alpha = .18) +
-  geom_line(colour = "#002e65", linewidth = 1) +
-  geom_vline(xintercept = mu_prior, colour = "#ea2c38",
-             linetype = "dotted", linewidth = 1) +
-  facet_wrap(~ panel, ncol = 2, scales = "free_y") +
-  labs(x = "one-way commute (minutes)", y = "density") +
-  theme_linedraw()
-```
-
-Same centre. [Very different width]{.hl} — and they mean different things.
-
-## What the two numbers mean {.smaller}
-
-- **Q1** is a statement about the [spread of the data]{.hl} itself:
-  $\sigma \approx `r round(sigma_prior, 1)`$ minutes. People genuinely differ,
-  and they would differ just as much if we had a million observations.
-- **Q2** is a statement about a [parameter]{.hl} we do not know:
-  $\mu \backsim N(`r round(mu_prior, 1)`, `r round(sd_prior, 1)`)$.
-  Our *uncertainty* about the average — and that one shrinks as data arrives.
-
-Keeping these apart is the single most useful habit in this workshop.
-
-::: {.calcnote}
-**How the numbers were made.** An 80% central interval reaches
-`r round(Z/2, 2)` standard deviations either side of the centre, so it is
-2 × `r round(Z/2, 2)` = `r round(Z, 3)` standard deviations **wide** — compare
-the familiar ±1.96 for 95%, which is 3.920 wide. A low–high pair hands us a
-width, not a half-width, so sd = width / `r round(Z, 3)`.
-
-Q1: $\sigma$ = (`r ind_high` − `r ind_low`) / `r round(Z, 3)` =
-**`r round(sigma_prior, 1)`**.
-
-Q2: $\mu_0$ = (`r mu_low` + `r mu_high`) / 2 = **`r round(mu_prior, 1)`**,
-$\sigma_0$ = (`r mu_high` − `r mu_low`) / `r round(Z, 3)` = **`r round(sd_prior, 1)`**.
-:::
 
 ## Why statistical inference? an example
 
@@ -240,25 +158,80 @@ summary(Model1)
 :::
 
 ::: aside
-Simulated data — `simulate_commute.R` documents the process and its sources.
+Simulated data: `simulate_commute.R` documents the process and its sources.
 :::
 
 ## Frequentistic statistical inference (interpretation ...)
 
 ```{r}
 #| echo: false
-lower  <- 1.080 - (1.96*.053)
-higher <- 1.080 + (1.96*.053)
+# taken from Model1 above, so the text can never drift from the output
+b1_hat <- coef(Model1)[["Distance_c"]]
+se1    <- summary(Model1)$coefficients["Distance_c", "Std. Error"]
+lower  <- b1_hat - (1.96 * se1)
+higher <- b1_hat + (1.96 * se1)
 ```
 
 Sample: for each km further from work, approx one minute longer
 
 Population:
 
--   p-value = prob to observe a \|1.080\| estimate in our sample if effect is zero in the population is lower than 0.05
--   CI = in 95% of possible samples the calculation of a CI would result in an interval containing the true population value
+- p-value = prob to observe a \|`r round(b1_hat, 3)`\| estimate in our sample given that the "real" effect in the population is zero is lower than 0.05
+- CI = in 95% of the possible samples the calculation of a CI would result in an interval containing the true population value
 
 ==\> \[`r round(lower, 3)` ; `r round(higher, 3)`\] so: 1.00 is as equally probable as 1.15 ...
+
+## Frequentistic statistical inference (what 95% means ...)
+
+```{r}
+#| echo: false
+#| fig-height: 5.0
+
+# A virtual population where we know the answer, so we can count how often a
+# 95% interval actually catches it. Its parameters come from the sample we
+# just analysed, so these intervals have the width of the one on the previous
+# slide. Seed 1 is used because it happens to give exactly 5 misses out of
+# 100, which is what the procedure promises on average. Every interval here
+# is a genuine interval from a genuine random sample.
+b1_pop <- round(coef(Model1)[["Distance_c"]], 2)
+b0_pop <- mean(CommuteData$CommuteTime)
+s_pop  <- sigma(Model1)
+xc     <- CommuteData$Distance_c
+n_obs  <- nrow(CommuteData)
+
+one_sample <- function() {
+  y  <- b0_pop + b1_pop * xc + rnorm(n_obs, 0, s_pop)
+  m  <- lm(y ~ xc)
+  ci <- confint(m)["xc", ]
+  c(est = unname(coef(m)[["xc"]]), lo = ci[[1]], hi = ci[[2]])
+}
+
+set.seed(1)
+draws        <- as.data.frame(t(replicate(100, one_sample())))
+draws$sample <- seq_len(nrow(draws))
+draws$misses <- draws$lo > b1_pop | draws$hi < b1_pop
+
+ggplot(draws, aes(y = sample)) +
+  geom_vline(xintercept = b1_pop, colour = "#ea2c38",
+             linetype = "dashed", linewidth = 0.9) +
+  geom_segment(aes(x = lo, xend = hi, yend = sample, colour = misses),
+               linewidth = 0.5) +
+  geom_point(aes(x = est, colour = misses), size = 0.8) +
+  scale_colour_manual(values = c(`FALSE` = "#1b4a7a", `TRUE` = "#ea2c38"),
+                      guide = "none") +
+  labs(x = expression(beta[1]*": extra minutes per km"),
+       y = "100 samples from one population") +
+  theme_linedraw() +
+  theme(axis.text.y  = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor   = element_blank())
+```
+
+A virtual population with $\beta_1$ = `r round(coef(Model1)[["Distance_c"]], 2)`,
+the dashed line. Draw 100 samples, get 100 intervals:
+[`r sum(!draws$misses)` contain it, `r sum(draws$misses)` do not]{.hl}. The 95%
+is a property of the [procedure across samples]{.hl}, not of any one interval.
 
 ## Bayesian statistical inference
 
@@ -287,18 +260,18 @@ mcmc_areas(
 ::: {.column width="50%"}
 Advantages:
 
--   Natural approach to express uncertainty
--   Ability to incorporate prior knowledge
--   Increased model flexibility
--   Full posterior distribution of the parameters
--   Natural propagation of uncertainty
+- Natural approach to express uncertainty
+- Ability to incorporate prior knowledge
+- Increased model flexibility
+- Full posterior distribution of the parameters
+- Natural propagation of uncertainty
 :::
 
 ::: {.column width="50%"}
 Disadvantage:
 
--   Slow speed of model estimation
--   Some reviewers don't understand you (<i>"give me the p-value"</i>)
+- Slow speed of model estimation
+- Some reviewers don't understand you (<i>"give me the p-value"</i>)
 :::
 :::::
 
@@ -318,13 +291,13 @@ knitr::include_graphics("prior_data_posterior.png")
 :::
 
 ::: {.column width="50%"}
-$$
-P(\theta|data) = \frac{P(data|\theta)P(\theta)}{P(data)}
-$$ with
 
--   $P(data|\theta)$ : the [likelihood]{.hl} of the data given our model $\theta$
--   $P(\theta)$ : our [prior]{.hl} belief about values for the model parameters
--   $P(\theta|data)$: the [posterior]{.hl} probability for model parameter values
+$$P(\theta|data) = \frac{P(data|\theta)P(\theta)}{P(data)}$$
+with
+
+- $P(data|\theta)$ : the [likelihood]{.hl} of the data given our model $\theta$
+- $P(\theta)$ : our [prior]{.hl} belief about values for the model parameters
+- $P(\theta|data)$: the [posterior]{.hl} probability for model parameter values
 :::
 :::::
 
@@ -338,7 +311,7 @@ $P(data|\theta)$ : the [likelihood]{.hl} of the data given our model $\theta$
 
 This part is about our [MODEL]{.marker} and the parameters (aka the unknowns) in that model
 
-> Example: a model on "time needed to get to work" could be a normal distribution: $y_i \backsim N(\mu, \sigma)$
+> Example: a model on "time needed to get to work" could be a normal distribution $y_i \backsim N(\mu, \sigma)$
 
 So: for a certain average ($\mu$) and standard deviation ($\sigma$) we can calculate the probability of observing a commute of 45 minutes
 
@@ -351,8 +324,7 @@ Expression of our [prior knowledge (belief)]{.marker} on the parameter values
 e.g., How probable is an average commute of 20 minutes ($P(\mu=20)$) and how probable is a standard deviation of 25 minutes ($P(\sigma=25)$)?
 
 ::: aside
-You already did this at the start: the ranges you wrote down were priors on
-$\mu$ and on $\sigma$, before you had seen a single observation.
+You already did this as homework! The ranges you mailed were priors on $\mu$ and on $\sigma$, before you had seen a single observation.
 :::
 
 ## Prior as a distribution
@@ -360,7 +332,7 @@ $\mu$ and on $\sigma$, before you had seen a single observation.
 How probable are different values as average commuting time in a population?
 
 ```{r}
-X <- seq(0, 90, by = 0.1)
+X <- seq(X_VIEW[1], X_VIEW[2], length.out = 600)
 
 Prob <- dnorm(
   X,
@@ -378,6 +350,121 @@ data_frame(X, Prob) %>%
   theme_linedraw()
 ```
 
+## `r fontawesome::fa("pen", "white")` Homework {background-color="#002e65" transition="slide-in"}
+
+Three questions you got as homework.
+
+**1. about individual people.** Think of the people sitting around you. [8 out of 10]{.hl} of them have a one-way commute between \_\_\_ and \_\_\_ minutes.
+
+**2. about the average.** Now forget individuals. If we averaged the commute of everyone in this room into a single number, what would that number be? Give a low and a high you would bet on [8 times out of 10]{.hl}.
+
+**3. your commute time.** Finally, what is your commute time?
+
+
+## What the room believes
+
+```{r}
+#| echo: false
+#| fig-height: 4.3
+#| fig-width: 11
+# One row per participant, in the order the answers came in, drawn exactly the
+# way the console draws them: pale wide bar = Q1 (individual people), dark
+# narrow bar = Q2 (the average), dot = middle of Q2, tick = their own commute.
+rows    <- room
+rows$id <- seq_len(nrow(rows))
+
+lab_q1  <- "Q1  individual people"
+lab_q2  <- "Q2  the average"
+lab_own <- "own commute"
+
+ggplot(rows, aes(y = id)) +
+  geom_segment(aes(x = ilo, xend = ihi, yend = id, colour = lab_q1),
+               linewidth = 3.4, alpha = .35, lineend = "round") +
+  geom_segment(aes(x = lo, xend = hi, yend = id, colour = lab_q2),
+               linewidth = 1.8, lineend = "round") +
+  geom_point(aes(x = (lo + hi) / 2, colour = lab_q2), size = 1.7) +
+  geom_point(aes(x = own, colour = lab_own), shape = 124, size = 4) +
+  scale_y_reverse(breaks = NULL) +
+  scale_colour_manual(
+    values = setNames(c("#4a6b93", "#002e65", "#ea2c38"),
+                      c(lab_q1, lab_q2, lab_own)),
+    breaks = c(lab_q1, lab_q2, lab_own)
+  ) +
+  labs(x = "minutes, one way", y = NULL, colour = NULL) +
+  theme_linedraw() +
+  theme(
+    legend.position   = "top",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+```
+
+One row per person. For [`r sum(room$ihi - room$ilo > room$hi - room$lo)` of `r N_ROOM`]{.hl} of you the pale bar is the wider one.`r ROOM_NOTE`
+
+## What the room believes
+
+```{r}
+#| echo: false
+#| fig-height: 3.5
+#| fig-width: 11
+# Two questions, two unknowns, two priors. They do NOT share an x-axis:
+# the left panel is a number of minutes of SPREAD, the right a number of
+# minutes of AVERAGE. Hence scales = "free".
+X_mu  <- seq(X_VIEW[1], X_VIEW[2], length.out = 600)
+X_sig <- seq(0, ceiling(qlnorm(0.999, log(sigma_prior), sigma_logsd)),
+             length.out = 600)
+
+curves <- rbind(
+  data.frame(x = X_sig, d = dlnorm(X_sig, log(sigma_prior), sigma_logsd),
+             panel = "Q1  where is the SPREAD?   (sigma)"),
+  data.frame(x = X_mu,  d = dnorm(X_mu, mu_prior, sd_prior),
+             panel = "Q2  where is the AVERAGE?   (mu)")
+)
+
+# keep the panels in the order they were asked, not alphabetical
+curves$panel <- factor(curves$panel, levels = unique(curves$panel))
+
+# each panel is marked at its own elicited value
+marks <- data.frame(panel = factor(levels(curves$panel),
+                                   levels = levels(curves$panel)),
+                    x     = c(sigma_prior, mu_prior))
+
+ggplot(curves, aes(x, d)) +
+  geom_area(fill = "#002e65", alpha = .18) +
+  geom_line(colour = "#002e65", linewidth = 1) +
+  geom_vline(data = marks, aes(xintercept = x), colour = "#ea2c38",
+             linetype = "dotted", linewidth = 1) +
+  facet_wrap(~ panel, ncol = 2, scales = "free") +
+  labs(x = "minutes", y = "density") +
+  theme_linedraw()
+```
+
+Pooled over [`r N_ROOM`]{.hl} of you: a belief about [each of the two unknowns]{.hl}
+in the model, centred on `r round(sigma_prior, 1)` and `r round(mu_prior, 1)` minutes.
+Different quantities and we are uncertain about both.`r ROOM_NOTE`
+
+## What the two numbers mean {.smaller}
+
+- **Q1** is a statement about the [parameter sigma, the spread of the data]{.hl}: $\sigma \approx `r round(sigma_prior, 1)`$ minutes. 
+- **Q2** is a statement about the [parameter mu, the average]{.hl}: $\mu \backsim N(`r round(mu_prior, 1)`, `r round(sd_prior, 1)`)$. 
+
+
+Our *uncertainty* about both the average and the spread will shrink as data arrives.
+
+::: calcnote
+**How the numbers were made.** 
+
+An 80% central interval reaches `r round(Z/2, 2)` standard deviations either side of the centre, so it is 2 × `r round(Z/2, 2)` = `r round(Z, 3)` standard deviations **wide**. Compare the familiar ±1.96 for 95%, which is 3.920 wide. A low–high pair hands us a width, not a half-width, so sd = width / `r round(Z, 3)`.
+
+Q1: $\sigma$ = (`r round(ind_high, 1)` − `r round(ind_low, 1)`) / `r round(Z, 3)` = **`r round(sigma_prior, 1)`**. That is the room's average width, so it is one number pooled over `r N_ROOM` answers.
+
+**And how sure are we about $\sigma$?** Q1 gives a *value* for the spread, not our confidence in it, so that is added separately: $\sigma \backsim \text{lognormal}(\log `r round(sigma_prior, 1)`, `r sprintf('%.2f', sigma_logsd)`)$. Lognormal because a spread is *multiplicative* and must stay positive. It can be two-thirds or one-and-a-half times what you said, never −5 minutes. The `r sprintf('%.2f', sigma_logsd)` lives on the log scale, so 8 times out of 10 it puts $\sigma$ between **`r round(sigma_prior * exp(-(Z/2) * sigma_logsd), 1)`** and **`r round(sigma_prior * exp((Z/2) * sigma_logsd), 1)`** minutes. It is fixed rather than read off your answers: your Q1 ranges say what you think the spread *is*, not how sure you are about it.
+
+Q2 pools `r N_ROOM` answers, so it has two sources of uncertainty: you disagree with each other (sd `r round(sd_between, 1)`), and each of you is unsure on your own (sd `r round(sd_within, 1)`). Variances add: $\mu_0$ = **`r round(mu_prior, 1)`**, 
+
+$\sigma_0 = \sqrt{`r round(sd_between,1)`^2 + `r round(sd_within,1)`^2}$ = **`r round(sd_prior, 1)`**.
+:::
+
 ## Types of priors
 
 ::::: columns
@@ -392,18 +479,18 @@ When objectivity is crucial and you want *let the data speak for itself...*
 
 When including significant information is crucial
 
--   previously collected data
--   results from former research/analyses
--   data of another source
--   theoretical considerations
--   elicitation
+- previously collected data
+- results from former research/analyses
+- data of another source
+- theoretical considerations
+- elicitation
 :::
 :::::
 
 ## Type of priors (visually)
 
 ```{r}
-X <- seq(0, 90, by = 0.1)
+X <- seq(X_VIEW[1], X_VIEW[2], length.out = 600)
 
 Weakly_Informative <- dnorm(
   X,
@@ -413,8 +500,8 @@ Weakly_Informative <- dnorm(
 
 Uninformative <- dunif(
   X,
-  min = 5,
-  max = 85
+  min = X_VIEW[1] + 5,
+  max = X_VIEW[2] - 5
 )
 
 
@@ -459,28 +546,17 @@ curve( dlnorm( x , log(sigma_prior) , sigma_logsd ) , from=0 , to=45 ,
 Our [**data**]{.hl}:
 
 ```{r, echo = T}
-CT <- c(
-  22,
-  35,
-  18,
-  47,
-  12,  ## lucky one; lives around the corner
-  29,
-  38,
-  25,
-  55,
-  31)
+# your own commuting times, as you sent them in
 CT
 ```
 
 ::: aside
-Ten commutes, in minutes. Mean `r round(mean(c(22,35,18,47,12,29,38,25,55,31)), 1)`,
-sd `r round(sd(c(22,35,18,47,12,29,38,25,55,31)), 1)`.
+`r length(CT)` commutes, in minutes. Mean `r round(ct_mean, 1)`, sd `r round(ct_sd, 1)`.
 :::
 
 ## Let's apply this idea
 
-What is the [**posterior probability**]{.hl} of [mu = 30]{.marker} combined with a [sigma = 13]{.marker}?
+What is the [**posterior probability**]{.hl} of [mu = `r C1_mu`]{.marker} combined with a [sigma = `r C1_sigma`]{.marker}?  *(this is C1)*
 
 ```{r}
 #| echo: false
@@ -495,7 +571,7 @@ options(scipen = 0)   # these numbers get small; let R use scientific notation
 
 # Calculate the likelihood of the data
 # given these parameter values of
-# mu = 30 ; sigma = 13
+# mu = C1_mu ; sigma = C1_sigma
 # remember CT contains our data
 # the likelihood of the WHOLE dataset
 # is the PRODUCT over the observations
@@ -503,8 +579,8 @@ Likelihood <-
   prod(
       dnorm(
         CT ,
-        mean=30 ,
-        sd=13)
+        mean=C1_mu ,
+        sd=C1_sigma)
       )
 Likelihood
 
@@ -517,8 +593,8 @@ Likelihood
 
 # Calculate our Prior belief
 
-Prior <- dnorm(30, mu_prior , sd_prior ) *
-  dlnorm(13 , log(sigma_prior) , sigma_logsd )
+Prior <- dnorm(C1_mu, mu_prior , sd_prior ) *
+  dlnorm(C1_sigma , log(sigma_prior) , sigma_logsd )
 
 Prior
 
@@ -540,7 +616,7 @@ Product
 
 ## Let's apply this idea
 
-What is the [**posterior probability**]{.hl} of [mu = 45]{.marker} combined with a [sigma = 18]{.marker}?
+What is the [**posterior probability**]{.hl} of [mu = `r C2_mu`]{.marker} combined with a [sigma = `r C2_sigma`]{.marker}?  *(this is C2)*
 
 ::::: columns
 ::: {.column width="50%"}
@@ -549,15 +625,15 @@ What is the [**posterior probability**]{.hl} of [mu = 45]{.marker} combined with
 
 # Calculate the likelihood of the data
 # given these parameter values of
-# mu = 45 ; sigma = 18
+# mu = C2_mu ; sigma = C2_sigma
 # remember CT contains our data
 # again: PRODUCT, not sum
 Likelihood <-
   prod(
       dnorm(
         CT ,
-        mean=45 ,
-        sd=18)
+        mean=C2_mu ,
+        sd=C2_sigma)
       )
 Likelihood
 
@@ -570,7 +646,7 @@ Likelihood
 
 # Calculate our Prior belief
 
-Prior <- dnorm(45, mu_prior , sd_prior ) * dlnorm(18 , log(sigma_prior) , sigma_logsd )
+Prior <- dnorm(C2_mu, mu_prior , sd_prior ) * dlnorm(C2_sigma , log(sigma_prior) , sigma_logsd )
 
 Prior
 
@@ -600,20 +676,19 @@ We could repeat this systematically for following values:
 #| echo: true
 
 # sample some values for mu and sigma
-mu.list <- seq(from = 10,
-               to = 70,
+mu.list <- seq(from = GRID_MU[1],
+               to = GRID_MU[2],
                length.out=400)
-sigma.list <- seq(from = 1,
-                  to = 40,
+sigma.list <- seq(from = GRID_SIGMA[1],
+                  to = GRID_SIGMA[2],
                   length.out = 400)
 
 ```
 
 aka: we create a grid of possible parameter value combinations and approx the distribution of posterior probabilities
 
-::: {.calcnote}
-From here on we work with [log]{.hl} probabilities (`log = TRUE`): a product of
-many small densities underflows to zero on a computer, a sum of logs does not.
+::: calcnote
+If you check the code behind the slides, from here on we work with [log]{.hl} probabilities (`log = TRUE`): a product of many small densities underflows to zero on a computer, a sum of logs does not.
 :::
 
 ## Grid approximation applied
@@ -655,17 +730,17 @@ post %>%
   # create the plot
   ggplot(aes(x = mu, y = sigma)) +
   geom_density_2d_filled() + 
-  annotate(geom = "text", x = 30, y = 13, label = "C1",
+  annotate(geom = "text", x = C1_mu, y = C1_sigma, label = "C1",
            colour = "#ffffff", fontface = "bold", size = 4.5) +
-  annotate(geom = "text", x = 45, y = 18, label = "C2",
+  annotate(geom = "text", x = C2_mu, y = C2_sigma, label = "C2",
            colour = "#ff9aa2", fontface = "bold", size = 4.5) +
-  scale_y_continuous(limits = c(5,35)) +
+  scale_y_continuous(limits = SIGMA_VIEW) +
   theme_minimal()
 ```
 
-C1: first combo of mu and sigma
+C1: $\mu$ = `r C1_mu`, $\sigma$ = `r C1_sigma`
 
-& C2: second combo of mu and sigma
+& C2: $\mu$ = `r C2_mu`, $\sigma$ = `r C2_sigma`
 
 ## Grid approximation applied
 
@@ -685,14 +760,14 @@ post %>%
   ggplot(aes(x = mu)) +
   geom_density() +
   theme_minimal() +
-  geom_vline(xintercept = 30, linetype = "dotted",
+  geom_vline(xintercept = C1_mu, linetype = "dotted",
              linewidth = 0.8, colour = "#002e65") +
-  geom_vline(xintercept = 45, linetype = "dotted",
+  geom_vline(xintercept = C2_mu, linetype = "dotted",
              linewidth = 0.8, colour = "#ea2c38") +
-  annotate("text", x = 30, y = Inf, label = "C1",
+  annotate("text", x = C1_mu, y = Inf, label = "C1",
            hjust = 1.05, vjust = 1.8, size = 4.2,
            fontface = "bold", colour = "#002e65") +
-  annotate("text", x = 45, y = Inf, label = "C2",
+  annotate("text", x = C2_mu, y = Inf, label = "C2",
            hjust = -0.05, vjust = 1.8, size = 4.2,
            fontface = "bold", colour = "#ea2c38") +
   ggtitle("Posterior Probability of average")
@@ -717,14 +792,14 @@ post %>%
   ggplot(aes(x = sigma)) +
   geom_density() +
   theme_minimal() +
-  geom_vline(xintercept = 13, linetype = "dotted",
+  geom_vline(xintercept = C1_sigma, linetype = "dotted",
              linewidth = 0.8, colour = "#002e65") +
-  geom_vline(xintercept = 18, linetype = "dotted",
+  geom_vline(xintercept = C2_sigma, linetype = "dotted",
              linewidth = 0.8, colour = "#ea2c38") +
-  annotate("text", x = 13, y = Inf, label = "C1",
+  annotate("text", x = C1_sigma, y = Inf, label = "C1",
            hjust = 1.05, vjust = 1.8, size = 4.2,
            fontface = "bold", colour = "#002e65") +
-  annotate("text", x = 18, y = Inf, label = "C2",
+  annotate("text", x = C2_sigma, y = Inf, label = "C2",
            hjust = -0.05, vjust = 1.8, size = 4.2,
            fontface = "bold", colour = "#ea2c38") +
   ggtitle("Posterior Probability of st.dev.")
@@ -733,39 +808,45 @@ post %>%
 
 ## Watching the data take over
 
-Same prior, more data. `n` is how many commutes we have looked at.
+Same prior, more data, and the same grid approximation as before. `n` is how many
+of your commutes we have looked at.
 
 ```{r}
 #| echo: true
 #| output-location: slide
 #| fig-height: 3.4
 
-# conjugate update of mu, with sigma plugged in from the data
-update_mu <- function(y, mu0, sd0) {
-  s2   <- var(y)
-  prec <- 1/sd0^2 + length(y)/s2
-  c(mu = (mu0/sd0^2 + sum(y)/s2) / prec,
-    sd = sqrt(1/prec))
+# the same grid as before, wrapped so we can hand it different amounts of
+# data. A coarser grid here, because we run it three times.
+mu.grid    <- seq(MU_VIEW[1], MU_VIEW[2], length.out = 220)
+sigma.grid <- seq(GRID_SIGMA[1], GRID_SIGMA[2], length.out = 160)
+
+grid_mu <- function(y) {
+  g <- expand.grid(mu = mu.grid, sigma = sigma.grid)     # <1>
+
+  g$LL <- sapply(1:nrow(g),                              # <2>
+    function(i) sum(dnorm(y, g$mu[i], g$sigma[i], log = TRUE)))
+
+  g$prod <- g$LL +                                       # <3>
+    dnorm(g$mu, mu_prior, sd_prior, TRUE) +
+    dlnorm(g$sigma, log(sigma_prior), sigma_logsd, TRUE)
+
+  g$prob <- exp(g$prod - max(g$prod))
+
+  rowSums(matrix(g$prob, nrow = length(mu.grid)))        # <4>
 }
 
-u5  <- update_mu(CT[1:5], mu_prior, sd_prior)
-u10 <- update_mu(CT,      mu_prior, sd_prior)
+lab  <- c("your prior", paste("after", N_EARLY), paste("after", length(CT)))
+dens <- list(dnorm(mu.grid, mu_prior, sd_prior),         # <5>
+             grid_mu(CT[1:N_EARLY]),
+             grid_mu(CT))
 
-steps <- data.frame(
-  step = factor(c("your prior", "after 5", "after 10"),
-                levels = c("your prior", "after 5", "after 10")),
-  mu   = c(mu_prior, u5[["mu"]], u10[["mu"]]),
-  sd   = c(sd_prior, u5[["sd"]], u10[["sd"]])
-)
+step_w <- diff(mu.grid)[1]
+dens   <- lapply(dens, function(d) d / (sum(d) * step_w))
 
-grid <- seq(0, 90, by = 0.5)
-
-curves <- do.call(rbind, lapply(
-  seq_len(nrow(steps)),
-  function(i) data.frame(step = steps$step[i],
-                         x    = grid,
-                         d    = dnorm(grid, steps$mu[i], steps$sd[i]))
-))
+curves <- do.call(rbind, lapply(seq_along(dens), function(i)
+  data.frame(step = factor(lab[i], levels = lab),
+             x = mu.grid, d = dens[[i]])))
 
 ggplot(curves, aes(x, d, colour = step, fill = step)) +
   geom_area(alpha = .15, position = "identity") +
@@ -777,27 +858,40 @@ ggplot(curves, aes(x, d, colour = step, fill = step)) +
   theme_linedraw()
 ```
 
+1.  every combination of a mu and a sigma, exactly as before
+2.  how likely the data we have so far are, at each combination
+3.  times your two priors, on the log scale
+4.  add up over sigma, which leaves the posterior for mu alone
+5.  the starting point: your prior, before any commute is seen
+
 ## Watching the data take over
 
 ```{r}
 #| echo: false
-steps %>%
-  mutate(across(c(mu, sd), \(x) round(x, 1))) %>%
-  knitr::kable(col.names = c("", "mu", "sd"))
+steps <- data.frame(
+  step = lab,
+  mu   = sapply(dens, function(d) sum(mu.grid * d / sum(d))),
+  sd   = sapply(dens, function(d) {
+           p <- d / sum(d); m <- sum(mu.grid * p)
+           sqrt(sum((mu.grid - m)^2 * p))
+         })
+)
+
+knitr::kable(transform(steps, mu = round(mu, 1), sd = round(sd, 1)),
+             col.names = c("", "mu", "sd"), row.names = FALSE)
 ```
 
-Five observations already move us most of the way.
+`r N_EARLY` observations already move us most of the way. Nothing new was needed here: this is the grid from the previous slides, run three times on a growing slice of your data: no data; `r N_EARLY` observations; `r N_ROOM` observations.
 
-With the full dataset later today, the prior barely matters at all — which is
-itself worth knowing: [priors matter most when data are scarce]{.hl}.
+With the full dataset later today, the prior barely matters at all: [priors matter most when data are scarce]{.hl}.
 
 ## Sampling parameter values
 
--   Instead of a fixed grid of combinations of parameter values,
+- Instead of a fixed grid of combinations of parameter values,
 
--   sample pairs/triplets/... of parameter values
+- sample pairs/triplets/... of parameter values
 
--   reconstruct the posterior probability distribution
+- reconstruct the posterior probability distribution
 
 # Why `brms`?
 
@@ -851,11 +945,11 @@ BUT: samples will not be random!
 
 <br>
 
--   different dedicated software/packages are available: JAGS / BUGS / Stan
+- different dedicated software/packages are available: JAGS / BUGS / Stan
 
--   most powerful is [Stan]{.hl}! Specifically the *Hamiltonian Monte Carlo* algorithm makes it the best choice at the moment
+- most powerful is [Stan]{.hl}! Specifically the *Hamiltonian Monte Carlo* algorithm makes it the best choice at the moment
 
--   [Stan]{.hl} is a probabilistic programming language that uses C++
+- [Stan]{.hl} is a probabilistic programming language that uses C++
 
 ## Example of Stan code
 
@@ -912,23 +1006,21 @@ Model <- brm(
 
 Notice:
 
--   `backend = "cmdstanr"` indicates the way we want to interact with Stan and C++
+- `backend = "cmdstanr"` indicates the way we want to interact with Stan and C++
 
 ## Let's retake the example on commuting
 
 The simplest model looked like:
 
-$$
-CT_i \sim N(\mu,\sigma_e)
-$$
+$$CT_i \sim N(\mu,\sigma_e)$$
 
 In `brms` this model is:
 
 ```{r echo = TRUE, eval = FALSE}
-CT <- c(22, 35, 18, 47, 12, 29, 38, 25, 55, 31) # <1>
+CT        # <1> the commuting times you sent in
 
 # First make a dataset from our CT vector
-DataCT <- data_frame(CT)  # <2>
+DataCT <- data.frame(CT)  # <2>
 
 Mod_CT1 <- brm(                        # <3>
   CT ~ 1, # We only model an intercept # <4>
@@ -939,7 +1031,7 @@ Mod_CT1 <- brm(                        # <3>
 
 ```
 
-1.  create a dataset with the ten commuting times
+1.  the vector with everybody's commuting time
 2.  change it to a data frame
 3.  the brm() commando runs the model
 4.  define the model
@@ -965,14 +1057,99 @@ Mod_CT1<- readRDS(
 summary(Mod_CT1)
 ```
 
+## What priors did `brms` just use?
+
+We never told it. So it chose its own: [weakly informative]{.hl} defaults, built
+from the data themselves.
+
+```{r}
+#| echo: true
+prior_summary(Mod_CT1)
+```
+
+::: {.calcnote}
+Sensible defaults, but they are not *your* priors. The grid approximation a few
+slides ago used the ranges you wrote down. This model has never seen them.
+:::
+
+## The same model with your priors
+
+```{r echo = TRUE, eval = FALSE}
+room_priors <- c(                                          # <1>
+  set_prior(sprintf("normal(%.2f, %.2f)",
+                    mu_prior, sd_prior),
+            class = "Intercept"),
+  set_prior(sprintf("lognormal(%.3f, %.2f)",
+                    log(sigma_prior), sigma_logsd),
+            class = "sigma")
+)
+
+Mod_CT1_priors <- brm(                                     # <2>
+  CT ~ 1,
+  data    = DataCT,
+  prior   = room_priors,
+  backend = "cmdstanr",
+  seed    = 1975
+)
+```
+
+1.  your Q2 range becomes the prior on the intercept, your Q1 range the prior on sigma
+2.  the only thing that changed is the `prior` argument
+
+```{r}
+Mod_CT1_priors <- readRDS(
+  file = here("Presentations", "Part1", "Mod_CT1_priors.RDS")
+  )
+```
+
+```{r}
+#| echo: true
+#| output-location: slide
+summary(Mod_CT1_priors)
+```
+
+## Three approaches
+
+```{r}
+#| echo: false
+pw    <- post$prob / sum(post$prob)
+g_mu  <- sum(post$mu * pw)
+g_sig <- sum(post$sigma * pw)
+
+brm_row <- function(m) {
+  s <- posterior_summary(m)
+  c(s["b_Intercept", "Estimate"], s["b_Intercept", "Est.Error"],
+    s["sigma", "Estimate"],       s["sigma", "Est.Error"])
+}
+
+tab <- rbind(
+  "grid approximation, your priors" =
+    c(g_mu, sqrt(sum((post$mu - g_mu)^2 * pw)),
+      g_sig, sqrt(sum((post$sigma - g_sig)^2 * pw))),
+  "MCMC, your priors"    = brm_row(Mod_CT1_priors),
+  "MCMC, brms defaults"  = brm_row(Mod_CT1)
+)
+
+knitr::kable(round(tab, 1),
+             col.names = c("mu", "s.e.", "sigma", "s.e."))
+```
+
+The first two rows are the [same posterior]{.hl} reached two different ways.
+
+Grid and MCMC agree but MCMC is a better way of getting the same one when the grid becomes impossible.
+
+The third row differs because the [model differs]{.hl}. Nothing is wrong with it.
+
+It simply never heard what you believed.
+
 ## About chains and iterations
 
 Markov [Chain]{.hl} Monte Carlo
 
--   A chain of samples of parameter values
--   It is advised to run [multiple chains]{.hl}
--   Each sample of parameter values is called an [iteration]{.hl}
--   First X iterations are used to tune the sampler but not used to interpret the results: X burn-in iterations
+- A chain of samples of parameter values
+- It is advised to run [multiple chains]{.hl}
+- Each sample of parameter values is called an [iteration]{.hl}
+- First X iterations are used to tune the sampler but not used to interpret the results: X burn-in iterations
 
 `brms` defaults with **4 chains** each of **2000 iterations** of which **1000 iterations** are used as burn-in
 
@@ -1004,14 +1181,14 @@ plot(Mod_CT1)
 
 ## `r fontawesome::fa("laptop-code", "white")` Your Turn {background-color="#002e65" transition="slide-in"}
 
--   Open `CommuteData.RData`
--   Estimate your first Bayesian Models
--   Dependent variable: `CommuteTime`
--   Model1: only an intercept
--   Model2: introduce the effect of `Distance_c` and `Departure_c` on `CommuteTime`
--   Change the `brms` defaults (4 chains of 6000 iterations)
--   Make plots with the `plot()` function
--   What do we learn? (rough interpretation)
+- Open `CommuteData.RData`
+- Estimate your first Bayesian Models
+- Dependent variable: `CommuteTime`
+- Model1: only an intercept
+- Model2: introduce the effect of `Distance_c` and `Departure_c` on `CommuteTime`
+- Change the `brms` defaults (4 chains of 6000 iterations)
+- Make plots with the `plot()` function
+- What do we learn? (rough interpretation)
 
 ## Results Exercise
 
@@ -1157,11 +1334,11 @@ knitr::include_graphics("Vethari_paper.jpg")
 :::
 
 ::: {.column width="50%"}
--   $\widehat R$ \< 1.015 for each parameter estimate
+- $\widehat R$ \< 1.015 for each parameter estimate
 
--   at least 4 chains are recommended
+- at least 4 chains are recommended
 
--   Effective Sample Size (ESS) \> 400 to rely on $\widehat R$
+- Effective Sample Size (ESS) \> 400 to rely on $\widehat R$
 :::
 :::::
 
@@ -1169,9 +1346,9 @@ knitr::include_graphics("Vethari_paper.jpg")
 
 <br> <br> Two complementary procedures: <br> <br>
 
--   posterior-predictive check
+- posterior-predictive check
 
--   compare models with <i>[leave one out cross-validation]{.hl}</i>
+- compare models with <i>[leave one out cross-validation]{.hl}</i>
 
 ## Posterior-predictive check
 
@@ -1337,8 +1514,8 @@ ModX <- brm(
 
 Time to think about `your data` and research question
 
--   Define a simple model?
--   What are the parameters in that model?
--   What are your `prior beliefs` about each of the parameters?
--   Minimum and maximum values assumed for each parameter?
--   Do all potential parameter values have a similar probability?
+- Define a simple model?
+- What are the parameters in that model?
+- What are your `prior beliefs` about each of the parameters?
+- Minimum and maximum values assumed for each parameter?
+- Do all potential parameter values have a similar probability?

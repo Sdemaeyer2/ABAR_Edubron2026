@@ -1,0 +1,4 @@
+- source: project
+  netlify:
+    - id: 8364fb0f-be6b-4eb3-bc3d-cec122d924b5
+      url: https://bar-edubron2026.netlify.app

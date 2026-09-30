@@ -92,16 +92,15 @@ Tutorial source: <https://www.rensvandeschoot.com/brms-wambs/> Alternatives exis
 
 ## WAMBS Template to use
 
--   File called [WAMBS_workflow_MarathonData.qmd]{.hl-blue} (quarto document)
+-   File called [WAMBS_workflow_CommuteData.qmd]{.hl-blue} (quarto document)
 
 ::: callout-note
 ## Note
-The template still walks through the **marathon** example. The workflow is
-identical — only the dataset differs. Apply each step to the commuting model
-as we go.
+The template walks through the **same** commuting model we have been building,
+`CommuteTimes_Mod2`, so every step you see here applies directly to it.
 :::
 
--   <a href="https://bar-edubron2026.netlify.app/WAMBS_template/WAMBS_workflow_MarathonData.qmd" target="blank">Click here </a> for the Quarto version
+-   <a href="https://bar-edubron2026.netlify.app/WAMBS_template/WAMBS_workflow_CommuteData.qmd" target="blank">Click here </a> for the Quarto version
 
 -   Create your own project and project folder
 
@@ -221,10 +220,7 @@ get_prior(
 get_prior(
   CommuteTime ~ 1 + Distance_c + Departure_c,
   data = CommuteData
-) |>
-  as.data.frame() |>
-  dplyr::select(prior, class, coef, group, lb, ub) |>
-  knitr::kable()
+)
 ```
 
 -   `prior`: type of prior distribution
@@ -388,19 +384,12 @@ Remember Cohen's d: 0.2 = small effect size; 0.5 = medium effect size; 0.8 or hi
 
 ## Setting custom priors in `brms`
 
-<br>
-
 Setting our custom priors can be done with `set_prior( )` command
-
-<br>
 
 E.g., change the priors for the beta's (effects of `Distance_c` and `Departure_c`).
 
-Note that here we can do better than a vague `normal(0,10)`: we *know* roughly
-what a kilometre costs. Belgians travel about 18.5 km in about 28 minutes, so
-[one extra km is worth about 1.5 minutes]{.hl}:
+We *know* roughly what a kilometre costs. Belgians travel about 18.5 km in about 28 minutes, so [one extra km is worth about 1.5 minutes]{.hl}:
 
-<br>
 
 ```{r}
 #| message: false
@@ -637,7 +626,7 @@ mcmc_rhat(
 #| echo: true
 #| output-location: slide
 mcmc_neff(
-  neff_ratio(CommuteTimes_Mod2)
+  brms::neff_ratio(CommuteTimes_Mod2)
   ) + 
   yaxis_text(hjust = 1)  # to print parameter names
 ```

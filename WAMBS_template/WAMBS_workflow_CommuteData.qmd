@@ -30,7 +30,7 @@ An important aspect of the Bayesian workflow considers checking the priors that 
 We will visualize the priors and we will run "prior predictive checks". Therefore we need to load the dataset and a number of packages. This is done in the following code block.
 
 ::: callout-note
-This template is prepared as material for the *ABAR 2023* workshop. In that workshop the data used as a running example are data on predicting how fast marathons are run and whether some variables on the training before the training impact the results. The dependent variable is `MarathonTimeM` and we want to know whether there is an impact of average number of kilometers in a week ran during the preparation phase (`km4week`) and average speed while training during the preparation phase (`sp4week`).
+This template uses the same running example as the workshop: commuting times. The dependent variable is `CommuteTime`, the one-way commute in minutes, and we want to know whether it is affected by how far someone lives from work (`Distance_c`, in kilometres, centred on the mean distance) and by what time they leave in the morning (`Departure_c`, in hours after 07:00). Both predictors are centred, so the intercept is the expected commute for someone living the average distance away who leaves at 07:00.
 :::
 
 ```{r}
@@ -44,38 +44,36 @@ library(tidyverse)  # for all data wrangling and plotting
 library(brms)       # to have functions to run and check models
 library(ggmcmc)     # to generate some information on our model 
 library(bayesplot)  # to use certain plotting functions
-library(mcmcplots)  # to use certain plotting functions
 library(patchwork)  # to combine multiple ggplots into one plot
 library(priorsense) # to perform prior sensibility analyses
 
 load(
   here(
     "Presentations",
-    "MarathonData.RData")
+    "CommuteData.RData")
   )
 
-MarathonTimes_Mod2 <- readRDS(
+CommuteTimes_Mod2 <- readRDS(
   here(
     "Presentations",
     "Output",
-    "MarathonTimes_Mod2.RDS"
+    "CommuteTimes_Mod2.RDS"
   )
 )
 
 ```
 
-These are the different packages used in this template: [@here; @tidyverse; @brms; @ggmcmc; @bayesplot; @mcmcplots; @patchwork; @priorsense-2]
+These are the different packages used in this template: [@here; @tidyverse; @brms; @ggmcmc; @bayesplot; @patchwork; @priorsense-2]
 
 ### 1.1.2 Specification of the priors
 
 The model was formulated as:
 
-```{=tex}
 $$\begin{aligned}
-& \text{MarathonTimeM}_i \sim N(\mu,\sigma_e)\\
-& \mu = \beta_0 + \beta_1*\text{km4week}_i + \beta_2*\text{sp4week}_i + e_i
+& \text{CommuteTime}_i \sim N(\mu,\sigma_e)\\
+& \mu = \beta_0 + \beta_1*\text{Distance\_c}_i + \beta_2*\text{Departure\_c}_i + e_i
 \end{aligned}$$
-```
+
 To get an overview of the different parameters for which a prior has to be defined, we can use the `get_prior( )` function and specify our model. This will result in an overview of the default priors set by the `brms` package.
 
 ```{r}
@@ -83,19 +81,19 @@ To get an overview of the different parameters for which a prior has to be defin
 #| eval: true
 
 get_prior(
-  MarathonTimeM ~ 1 + km4week + sp4week, 
-  data = MarathonData
+  CommuteTime ~ 1 + Distance_c + Departure_c,
+  data = CommuteData
 )
 ```
 
 In the following table we made a list of all the priors that were defaulted by `brms`.
 
-| Parameter(s) | Description                 | Prior                                        | Rationale                            |
-|--------------|-----------------------------|----------------------------------------------|--------------------------------------|
-| $\beta_{0}$  | Intercept                   | $\sim t(3,199.2,24.9)$                       | *provide a rationale for this prior* |
-| $\beta_{1}$  | Overall effect of `km4week` | Flat prior                                   | *provide a rationale for this prior* |
-| $\beta_{2}$  | Overall effect of `sp4week` | Flat prior                                   | *provide a rationale for this prior* |
-| $\sigma_e$   | Residual variance           | $\sim t(3,0,24.9)$ with lowerbound being $0$ | *provide a rationale for this prior* |
+| Parameter(s) | Description | Prior | Rationale |
+|------------------|------------------|------------------|------------------|
+| $\beta_{0}$ | Intercept | $\sim t(3,26.5,12.4)$ | *provide a rationale for this prior* |
+| $\beta_{1}$ | Overall effect of `Distance_c` | Flat prior | *provide a rationale for this prior* |
+| $\beta_{2}$ | Overall effect of `Departure_c` | Flat prior | *provide a rationale for this prior* |
+| $\sigma_e$ | Residual variance | $\sim t(3,0,12.4)$ with lowerbound being $0$ | *provide a rationale for this prior* |
 
 : Table 1. Overview of the default priors used in the example model
 
@@ -103,12 +101,12 @@ We could also define our own priors. The next table gives an overview of our own
 
 In the following table we made a list of potential custom priors.
 
-| Parameter(s) | Description                 | Prior                                        | Rationale                                                                                                                                                                                                                                                                                                                                                                                            |
-|--------------|-----------------------------|----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| $\beta_{0}$  | Intercept                   | $\sim t(3,199.2,24.9)$                       | This prior implies that we concentrate our prior probabilities for the expected marathon time for a person scoring zero on both independent variables somewhere between 150 minutes (2,5 hours) and 250 minutes (4 hours and 10 minutes). If you know that the fastest marathon is just above 2 hours and that many runners run their marathon between 3 and 4,5 hours, this prior might make sense. |
-| $\beta_{1}$  | Overall effect of `km4week` | $\sim N(0,10)$                               | Here we use a normal distribution as our prior, with 0 as mean (we have no idea about the direction of the effect, so 0 gets most probability) and sd at 10.                                                                                                                                                                                                                                         |
-| $\beta_{2}$  | Overall effect of `sp4week` | $\sim N(0,10)$                               | Here we use a normal distribution as our prior, with 0 as mean (we have no idea about the direction of the effect, so 0 gets most probability) and sd at 10.                                                                                                                                                                                                                                         |
-| $\sigma_e$   | Residual variance           | $\sim t(3,0,24.9)$ with lowerbound being $0$ | *provide a rationale for this prior*                                                                                                                                                                                                                                                                                                                                                                 |
+| Parameter(s) | Description | Prior | Rationale |
+|------------------|------------------|------------------|------------------|
+| $\beta_{0}$ | Intercept | $\sim t(3,26.5,12.4)$ | This is the `brms` default, a student t centred on the median commute in the data. It spreads prior probability for the expected commute of someone at the average distance leaving at 07:00 over roughly 0 to 55 minutes. Given that the commutes we observe run from about 10 to 65 minutes, that is a reasonable place to start. |
+| $\beta_{1}$ | Overall effect of `Distance_c` | $\sim N(0,10)$ | Here we use a normal distribution as our prior, with 0 as mean (we have no idea about the direction of the effect, so 0 gets most probability) and sd at 10. |
+| $\beta_{2}$ | Overall effect of `Departure_c` | $\sim N(0,10)$ | Here we use a normal distribution as our prior, with 0 as mean (we have no idea about the direction of the effect, so 0 gets most probability) and sd at 10. |
+| $\sigma_e$ | Residual variance | $\sim t(3,0,12.4)$ with lowerbound being $0$ | *provide a rationale for this prior* |
 
 : Table 2. Overview of the custom priors used in the example model
 
@@ -141,23 +139,23 @@ theme_set(theme_linedraw() +
 Prior_mu <- ggplot( ) +
   stat_function(
     fun = dt.scaled,    # We use the dt.scaled function of metRology
-    args = list(df = 3, mean = 199.2, sd = 24.9), # 
-    xlim = c(120,300)
+    args = list(df = 3, mean = 26.5, sd = 12.4), #
+    xlim = c(-20,75)
   ) +
   scale_y_continuous(name = "density") +
   labs(title = "Prior for the intercept",
-       subtitle = "student_t(3,199.2,24.9)")
+       subtitle = "student_t(3,26.5,12.4)")
 
 # Generate the plot for the prior of the error variance (sigma)
 Prior_sigma <- ggplot( ) +
   stat_function(
     fun = dt.scaled,    # We use the dt.scaled function of metRology
-    args = list(df = 3, mean = 0, sd = 24.9), # 
-    xlim = c(0,6)
+    args = list(df = 3, mean = 0, sd = 12.4), #
+    xlim = c(0,30)
   ) +
   scale_y_continuous(name = "density") +
   labs(title = "Prior for the residual variance",
-       subtitle = "student_t(3,0,24.9)")
+       subtitle = "student_t(3,0,12.4)")
 
 # Generate the plot for the prior of the effects of independent variables
 Prior_betas <- ggplot( ) +
@@ -186,13 +184,13 @@ To use these priors for our model, we use the `set_prior( )` function in `bmrs`.
 Custom_priors <- 
   c(
     set_prior(
-      "normal(0,10)", 
-      class = "b", 
-      coef = "km4week"),
+      "normal(0,10)",
+      class = "b",
+      coef = "Distance_c"),
     set_prior(
-      "normal(0,10)", 
-      class = "b", 
-      coef = "sp4week")
+      "normal(0,10)",
+      class = "b",
+      coef = "Departure_c")
     )
 
 ```
@@ -207,10 +205,10 @@ To check the predictions based on the priors (aka prior predictive checks) we "e
 #| error: false
 #| echo: true
 
-Fit_Model_priors <- 
+Fit_Model_priors <-
   brm(
-    MarathonTimeM ~ 1 + km4week + sp4week, 
-    data = MarathonData,
+    CommuteTime ~ 1 + Distance_c + Departure_c,
+    data = CommuteData,
     prior = Custom_priors,
     backend = "cmdstanr",
     cores = 4,
@@ -232,7 +230,7 @@ pp_check(
   Fit_Model_priors, 
   ndraws = 300) +
   scale_x_continuous(
-    limits = c(120,300)
+    limits = c(0,80)
   )
 ```
 
@@ -248,7 +246,7 @@ pp_check(Fit_Model_priors,
          stat = "median")
 ```
 
-As we can see in the above graph, some of the simulated datasets based on our priors result in a negative median marathon time, which is of course impossible! We could reconsider our priors here. If we think more carefully about our prior distribution for the effect of `km4week` we are still giving quiet some probability to strong negative effects (e.g., 10 minutes gain for each km run more in a week). So, if an athlete runs 20km more on average in a week that will result in a gain of 200 minutes! Same holds for the other side of the coin: we also give some probability of being 200 mintues slower if an athlete runs 20km more on average a week. Clearly our prior is too weakly defined here. Alternatively we could also argue that our model doesn't really make sense (is there really a linear effect of these variables?). Let's introduce a more restrictive prior for the beta of `km4week` (a normal distribution with a sd = 2) and do a similar check.
+As we can see in the above graph, some of the simulated datasets based on our priors result in a negative median commuting time, which is of course impossible! We could reconsider our priors here. If we think more carefully about our prior distribution for the effect of `Distance_c` we are still giving quite some probability to very strong effects (e.g., 10 minutes extra for every extra kilometre). The distances in this dataset span about 42 km, so an effect of that size implies predicted commutes swinging by more than 400 minutes, while the commutes we actually observe run from about 10 to 65 minutes. The same holds for the other side of the coin: we give just as much probability to the commute getting 400 minutes *shorter* for people living further away. Clearly our prior is too weakly defined here. Alternatively we could also argue that our model doesn't really make sense (is there really a linear effect of these variables?). Let's introduce a more restrictive prior for the beta of `Distance_c` (a normal distribution with a sd = 2) and do a similar check.
 
 ```{r}
 #| message: false
@@ -258,19 +256,19 @@ As we can see in the above graph, some of the simulated datasets based on our pr
 Custom_priors2 <- 
   c(
     set_prior(
-      "normal(0,2)", 
-      class = "b", 
-      coef = "km4week"),
+      "normal(0,2)",
+      class = "b",
+      coef = "Distance_c"),
     set_prior(
-      "normal(0,10)", 
-      class = "b", 
-      coef = "sp4week")
+      "normal(0,10)",
+      class = "b",
+      coef = "Departure_c")
     )
 
-Fit_Model_priors2 <- 
+Fit_Model_priors2 <-
   brm(
-    MarathonTimeM ~ 1 + km4week + sp4week, 
-    data = MarathonData,
+    CommuteTime ~ 1 + Distance_c + Departure_c,
+    data = CommuteData,
     prior = Custom_priors2,
     backend = "cmdstanr",
     cores = 4,
@@ -282,7 +280,7 @@ pp_check(Fit_Model_priors2,
          stat = "median")
 ```
 
-This looks better! Now none of the simulated datasets is resulting in a negative median marathon time.
+This looks better! Now less of the simulated datasets is resulting in a negative median commuting time. Given that we have a large dataset it is not such a big problem (let's see later what the impact of the chosen prior is).
 
 # 2. After estimation before inspecting results
 
@@ -308,13 +306,13 @@ To create the caterpillar plots we made use of the `ggs( )` function from the pa
 #| cache: true
 #| warning: false
 
-Model_chains <- ggs(MarathonTimes_Mod2)
+Model_chains <- ggs(CommuteTimes_Mod2)
 
 Model_chains %>%
   filter(Parameter %in% c(
-          "b_Intercept", 
-          "b_km4week", 
-          "b_sp4week", 
+          "b_Intercept",
+          "b_Distance_c",
+          "b_Departure_c",
           "sigma"
           )
   ) %>%
@@ -335,10 +333,18 @@ Model_chains %>%
 Next we can have a look at both the $\widehat{R}$ values as well as the *Effective Sample Sizes* (ESS) for each parameter in the model. Following the rules of thumb in @vehtari2021 we consider that $\widehat{R}$ \<1.015 and ESS \> 400 to rely on the $\widehat{R}$ as indicators of convergence of the MCMC sampling. Printing the summary of our model gives us the necessary information:
 
 ```{r}
-summary(MarathonTimes_Mod2)
+summary(CommuteTimes_Mod2)
 ```
 
-All $\widehat{R}$ values are lower than 1.015 and given that the ESS are higher than 400 for all parameters, we can rely on the r-hat statistics. So we can conclude that the MCMC algorithm has converged properly.
+```{r}
+#| echo: false
+.sm  <- summary(CommuteTimes_Mod2)
+.tbl <- rbind(.sm$fixed, .sm$spec_pars)
+conv <- list(max_rhat = max(.tbl[, "Rhat"],     na.rm = TRUE),
+             min_ess  = min(.tbl[, "Bulk_ESS"], na.rm = TRUE))
+```
+
+Across the parameters in that table the largest $\widehat{R}$ is `r round(conv$max_rhat, 4)` and the smallest bulk ESS is `r round(conv$min_ess)`. Read those against the thresholds above: an $\widehat{R}$ below 1.015 together with an ESS above 400 is what lets us rely on the r-hat statistic and conclude that the MCMC algorithm converged properly. Both numbers are read off the model rather than typed in, so this sentence stays correct if you point the template at your own model.
 
 A more detailed plot of the $\widehat{R}$ values confirms this conclusion. Here we make use of the `mcmc_rhat()` function from the `bayesplot` package.
 
@@ -346,8 +352,11 @@ A more detailed plot of the $\widehat{R}$ values confirms this conclusion. Here 
 #| message: false
 #| fig-cap: "R-hat plot for the parameters in the model"
 #| fig-cap-location: margin
+# Note the explicit `brms::`. Several of the packages loaded above export a
+# function called `rhat()`, and the one that wins has no method for a brmsfit,
+# which throws "no applicable method for 'rhat'". Naming the package settles it.
 mcmc_rhat(
-  rhat(MarathonTimes_Mod2), 
+  brms::rhat(CommuteTimes_Mod2), 
   size = 1) +
   yaxis_text(hjust = 1) # to print parameter names
 ```
@@ -361,7 +370,7 @@ The MCMC-algorithm introduces autocorrelation in the values it samples. Hence, n
 #| fig-cap: "Plot for the ratio's of effective sample size to the total sample size for each paramater"
 #| fig-cap-location: margin
 mcmc_neff(
-  neff_ratio(MarathonTimes_Mod2)
+  brms::neff_ratio(CommuteTimes_Mod2)   # same clash, same fix
   ) + 
   yaxis_text(hjust = 1)
 ```
@@ -372,14 +381,14 @@ Another way to get insight into the degree of autocorrelation in the posterior d
 #| message: false
 #| fig-cap: "Level of autocorrelation per chain for the intercept and beta's in the model"
 #| fig-cap-location: margin
-mcmc_acf(as.array(MarathonTimes_Mod2), regex = "b")
+mcmc_acf(as.array(CommuteTimes_Mod2), regex = "b")
 ```
 
 ```{r}
 #| message: false
 #| fig-cap: "Level of autocorrelation per chain for the residual variance in the model"
 #| fig-cap-location: margin
-mcmc_acf(as.array(MarathonTimes_Mod2), regex = "sigma")
+mcmc_acf(as.array(CommuteTimes_Mod2), regex = "sigma")
 ```
 
 ### 2.1.4 Rank plots
@@ -391,14 +400,14 @@ mcmc_acf(as.array(MarathonTimes_Mod2), regex = "sigma")
 #| cache: true
 #| fig-cap: "Rank plots for the intercept and beta's in the model"
 #| fig-cap-location: margin
-mcmc_rank_hist(MarathonTimes_Mod2, regex = "b") 
+mcmc_rank_hist(CommuteTimes_Mod2, regex = "b") 
 ```
 
 ```{r}
 #| message: false
 #| fig-cap: "Rank plots for the residual variance in the model"
 #| fig-cap-location: margin
-mcmc_rank_hist(MarathonTimes_Mod2, regex = "sigma") 
+mcmc_rank_hist(CommuteTimes_Mod2, regex = "sigma") 
 ```
 
 ## 2.2 Does the posterior distribution histogram have enough information?
@@ -411,7 +420,7 @@ Here we make histograms based on the posterior probability distributions for eac
 #| fig-cap: "Posterior distribution histograms for the estimates in the final model"
 #| fig-cap-location: margin
 
-posterior_PD <- as_draws_df(MarathonTimes_Mod2)
+posterior_PD <- as_draws_df(CommuteTimes_Mod2)
 
 post_intercept <- 
   posterior_PD %>%
@@ -420,21 +429,21 @@ post_intercept <-
   geom_histogram() +
   ggtitle("Intercept") 
 
-post_km4week <- 
+post_distance <-
   posterior_PD %>%
-  select(b_km4week) %>%
-  ggplot(aes(x = b_km4week)) +
+  select(b_Distance_c) %>%
+  ggplot(aes(x = b_Distance_c)) +
   geom_histogram() +
-  ggtitle("Beta km4week") 
+  ggtitle("Beta Distance_c")
 
-post_sp4week <- 
+post_departure <-
   posterior_PD %>%
-  select(b_sp4week) %>%
-  ggplot(aes(x = b_sp4week)) +
+  select(b_Departure_c) %>%
+  ggplot(aes(x = b_Departure_c)) +
   geom_histogram() +
-  ggtitle("Beta sp4week") 
+  ggtitle("Beta Departure_c")
 
-post_intercept + post_km4week + post_sp4week +
+post_intercept + post_distance + post_departure +
   plot_layout(ncol = 3)
 ```
 
@@ -445,7 +454,7 @@ To see how well our model predicts the observed data, we can perform a *posterio
 ```{r}
 #| fig-cap: "Posterior predictive check for the final model with 100 draws"
 #| fig-cap-location: margin
-pp_check(MarathonTimes_Mod2, 
+pp_check(CommuteTimes_Mod2,
          ndraws = 100)
 
 ```
@@ -468,20 +477,26 @@ remotes::install_github("n-kall/priorsense")
 
 A first quick check is done by using the `powerscale_sensitivity( )` function. This results in a tibble with some information on each of the parameters:
 
--   the column `prior` gives a sensitivity index for the prior (so how sensitive is this parameter to changes in the prior)
+- the column `prior` gives a sensitivity index for the prior (so how sensitive is this parameter to changes in the prior)
 
--   the colum `likelihood` gives a similar sensitivity index for the likelihood
+- the colum `likelihood` gives a similar sensitivity index for the likelihood
 
--   the column `diagnosis` gives a verbalization of the diagnosis if there is something to consider
+- the column `diagnosis` gives a verbalization of the diagnosis if there is something to consider
 
 The sensitivity indices can be interpreted by making use of a critical value 0.05. If the sensitivity index is higher than 0.05 this means that the parameter is sensitive for changes in the prior and/or likelihood.
 
-In our example here the prior sensitivity indices are all lower than 0.05, indicating that none of the parameter estimates are sensitive to changes in the prior. This is what we are hoping for. At the other hand, we see that all parameters are sensitive to changes in the likelihood. That is actually also what you are hoping for, as this implies that our parameter estimates are mainly informed by the data (which translates in the likelihood part of Bayes' theorem).
+```{r}
+ps <- powerscale_sensitivity(CommuteTimes_Mod2)
+ps
+```
 
 ```{r}
-powerscale_sensitivity(MarathonTimes_Mod2)
-
+#| echo: false
+n_prior_flag <- sum(ps$prior > 0.05, na.rm = TRUE)
+n_lik_flag   <- sum(ps$likelihood > 0.05, na.rm = TRUE)
 ```
+
+Of the `r nrow(ps)` parameters in that table, `r n_prior_flag` exceed 0.05 on the prior index and `r n_lik_flag` exceed it on the likelihood index. A low count in the first column is what we are hoping for, because it means the estimates do not lean on the priors. A high count in the second is also what you want, as it implies that our parameter estimates are mainly informed by the data (which translates in the likelihood part of Bayes' theorem). Both counts are computed from the table above rather than typed in, so they stay correct if you point this template at your own model.
 
 There is also the possibility to visualize this making use of the following code:
 
@@ -492,19 +507,19 @@ There is also the possibility to visualize this making use of the following code
 
 powerscale_plot_dens(
   powerscale_sequence(
-    MarathonTimes_Mod2
+    CommuteTimes_Mod2
     ),
   variables = c(
       "b_Intercept",
-      "b_km4week",
-      "b_sp4week"
+      "b_Distance_c",
+      "b_Departure_c"
     )
   )
 ```
 
 The resulting graph shows different panels. The panels in the first row show information on the impact of changing the priors on the posterior probability distribution for each of the parameters (= prior sensitivity). Here we see that this shows a single line (all lines are plotted on top of each other), meaning that changing the prior has no impact on the posterior probability distributions for each of these parameters.
 
-The panels in the second row show the information for the likelihood sensitivity. Focussing on the graph for the effect of `km4week` we can see that changing the likelihood results in different posterior distributions: if the likelihood gets more weight (gets up-scaled by a positive factor, see more red lines) the posterior gets narrower and more peaked, and vice versa. The same holds for the other two parameters, but is hidden in the graph given the uninformative y-scales of the graphs at this point.
+The panels in the second row show the information for the likelihood sensitivity. Focussing on the graph for the effect of `Distance_c` we can see that changing the likelihood results in different posterior distributions: if the likelihood gets more weight (gets up-scaled by a positive factor, see more red lines) the posterior gets narrower and more peaked, and vice versa. The same holds for the other two parameters.
 
 Another interesting diagnostic visualization is coming from the `powerscale_plot_quantities( )` function. Here we apply it to the two slope parameters:
 
@@ -515,11 +530,11 @@ Another interesting diagnostic visualization is coming from the `powerscale_plot
 
 powerscale_plot_quantities(
   powerscale_sequence(
-    MarathonTimes_Mod2
+    CommuteTimes_Mod2
     ),
   variables = c(
-      "b_km4week",
-      "b_sp4week"
+      "b_Distance_c",
+      "b_Departure_c"
       )
   )
 ```

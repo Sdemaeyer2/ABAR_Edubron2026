@@ -64,8 +64,8 @@ S_Long <- S %>%
   
 ## Step 2: Create a vector of possible scores for your X variable
 
-# here I make a vector of potential values for km4week_z (set a sensible range!)
-# our km4week_z is a z score so I choose numbers between -3 and 3
+# here I make a vector of potential values for the predictor (set a sensible range!)
+# if the predictor is a z score, numbers between -3 and 3 make sense
 X <- seq(-15, 15, by = .1)
 
 ## Step 3: Create an empty tibble that will be filled with predictions

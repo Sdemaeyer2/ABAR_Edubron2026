@@ -17,8 +17,21 @@ FORCE <- FALSE   # set TRUE to refit models whose .RDS already exists
 
 dir.create(here("Presentations", "Output"), showWarnings = FALSE, recursive = TRUE)
 
-fit_if_needed <- function(path, expr) {
-  if (!FORCE && file.exists(path)) {
+# A saved fit is stale if it was fitted on a different set of commutes than
+# the one the slides will use. Without this, changing the room's CSV leaves
+# the deck loading last year's posterior and nothing says so.
+ct_is_stale <- function(path, CT) {
+  if (!file.exists(path)) return(FALSE)
+  tryCatch({
+    old <- as.numeric(readRDS(path)$data[[1]])
+    !isTRUE(all.equal(sort(old), sort(as.numeric(CT))))
+  }, error = function(e) TRUE)
+}
+
+fit_if_needed <- function(path, expr, stale = FALSE) {
+  if (stale && file.exists(path))
+    message("  data changed, refitting: ", basename(path))
+  if (!FORCE && !stale && file.exists(path)) {
     message("  already there, skipping: ", basename(path))
     return(invisible(readRDS(path)))
   }
@@ -55,17 +68,46 @@ print(summarise(CommuteData,
 # 2. Part 1 - the ten hand-typed commutes (Mod_CT1)
 #    This is the toy model on slide "Let's retake the example on commuting".
 # ---------------------------------------------------------------------------
-message("2/6  Mod_CT1 (the ten-value vector)")
+message("2/6  Mod_CT1 and Mod_CT1_priors (the room's own commuting times)")
 
-CT     <- c(22, 35, 18, 47, 12, 29, 38, 25, 55, 31)
+# CT is whatever is in Data/room_2026.csv - the same vector the slides use.
+source(here("R_code", "elicitation.R"))
 DataCT <- data.frame(CT)
 
+mod_ct1 <- here("Presentations", "Part1", "Mod_CT1.RDS")
+
+# (a) brms default priors. The deck uses this one to show what brms picks
+#     for you when you say nothing.
 fit_if_needed(
-  here("Presentations", "Part1", "Mod_CT1.RDS"),
+  mod_ct1,
   brm(CT ~ 1,
       data    = DataCT,
       backend = "cmdstanr",
-      seed    = 1975)
+      seed    = 1975),
+  stale = ct_is_stale(mod_ct1, CT)
+)
+
+# (b) the same model given the room's own priors, so MCMC and the grid
+#     approximation target the same posterior and can be compared.
+mod_ct1p <- here("Presentations", "Part1", "Mod_CT1_priors.RDS")
+
+room_priors <- c(
+  set_prior(sprintf("normal(%.2f, %.2f)", mu_prior, sd_prior),
+            class = "Intercept"),
+  set_prior(sprintf("lognormal(%.3f, %.2f)", log(sigma_prior), sigma_logsd),
+            class = "sigma")
+)
+
+message("     room priors: ", paste(room_priors$prior, collapse = " | "))
+
+fit_if_needed(
+  mod_ct1p,
+  brm(CT ~ 1,
+      data    = DataCT,
+      prior   = room_priors,
+      backend = "cmdstanr",
+      seed    = 1975),
+  stale = ct_is_stale(mod_ct1p, CT)
 )
 
 # ---------------------------------------------------------------------------
@@ -146,6 +188,7 @@ needed <- c(
   here("Presentations", "CommuteData.csv"),
   here("Presentations", "CommuteData.RData"),
   here("Presentations", "Part1",  "Mod_CT1.RDS"),
+  here("Presentations", "Part1",  "Mod_CT1_priors.RDS"),
   here("Presentations", "Output", "Model1_commute.RDS"),
   here("Presentations", "Output", "CommuteTimes_Mod1.RDS"),
   here("Presentations", "Output", "CommuteTimes_Mod2.RDS"),

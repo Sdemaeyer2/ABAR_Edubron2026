@@ -36,3 +36,10 @@ _archive/
 
 # Netlify CLI state (holds your site id)
 .netlify/
+
+**/*.quarto_ipynb
+
+# The filled console carries the room's own answers. Kept local on purpose:
+# the repo and the deployed site are public. Rebuild it with
+# R_code/build_console.R from Data/room_2026.csv.
+Prior_console/prior_console_filled.html

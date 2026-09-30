@@ -235,6 +235,18 @@ $selection-bg:     $ua-red-pale;
   background-color: transparent;
 }
 
+// Centred along the bottom edge instead of bottom right, where a host badge
+// can cover it. The `div` in the selector is deliberate: reveal.js sets
+// `right: 8px` on `.reveal .slide-number`, so plain `right: auto` ties on
+// specificity and loses. The extra type selector wins, the box shrinks back
+// to the width of the text, and the transform centres it.
+.reveal div.slide-number {
+  right: auto;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+}
+
 // ==============================
 // Progress bar
 // ==============================

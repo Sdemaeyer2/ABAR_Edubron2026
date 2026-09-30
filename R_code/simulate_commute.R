@@ -22,7 +22,7 @@
 library(tidyverse)
 
 set.seed(20261001)          # the workshop date
-N <- 90                     # ~ the n = 87 of the marathon data
+N <- 90                     # a room-sized sample
 
 modes  <- c("Car", "Bike", "PublicTransport")
 p_mode <- c(.614, .165, .221)

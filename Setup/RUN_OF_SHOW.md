@@ -117,7 +117,7 @@ individual bars so you can see whether that's happening.
 | `Slides_Part2.qmd` | 16 edits. `CommuteTimes_Mod2`, `Distance_c` + `Departure_c` everywhere, a real slope prior `normal(1.5, 0.5)` instead of `normal(0,10)`. |
 | `Slides_Part3.qmd` | 3 stale marathon comments fixed (they were wrong before — the code operates on `FirstVersion_GM`). |
 | `Part1.qmd`, `Part2.qmd` | Data section and sources rewritten. |
-| `WAMBS.qmd`, `Slides_Part2.qmd` | A note explaining that the WAMBS template deliberately still uses the marathon example. |
+| `WAMBS.qmd`, `Slides_Part2.qmd` | Links point at the commuting template; the old note about the marathon example is gone. |
 | `Presentations/CommuteData.csv`, `Data/CommuteData.csv` | The dataset. |
 | `R_code/` | `fit_models.R` (fits every model the slides load), `simulate_commute.R` (regenerates the dataset). |
 | `Setup/` | This file and `INTEGRATION_PLAN.md`. |
@@ -149,9 +149,10 @@ in the headline model.
 
 ## Loose ends
 
-- The WAMBS template (`WAMBS_workflow_MarathonData.qmd`, in two copies) still
-  uses marathon data by your choice. Both places that link to it now say so.
-- `R_code/Day2_code.R` and the `HOP_*.R` scripts still reference marathon.
+- The WAMBS template is now `WAMBS_template/WAMBS_workflow_CommuteData.qmd`,
+  running on `CommuteTimes_Mod2`, the same model as Part 2. The marathon
+  version, its rendered html and its cache are in `_archive/marathon_wambs/`.
+- Nothing outside `_archive/` mentions the marathon example any more.
 - None of the R code has been executed — there is no R in the session that
   wrote it. `fit_models.R` is the first thing that will actually run it.
 
@@ -271,3 +272,142 @@ viridis fill is too dark for navy, so C1 is white and C2 is the palette's
 The **Those numbers are tiny** slide was removed as an unnecessary side-step;
 its one load-bearing sentence survives as a note on the grid slide. Part 1 is
 now 69 slides.
+
+## Running on the room's own answers (29 Sep)
+
+Participants were emailed for their two ranges and their own commute. The deck
+no longer has a single participant number typed into it.
+
+### The one file you edit
+
+`Data/room_2026.csv`, one row per person, header exactly:
+
+```
+ilo,ihi,lo,hi,own
+10,60,35,55,28
+15,70,40,60,35
+```
+
+- `ilo,ihi` — Q1, the 80% range for **individual** commutes
+- `lo,hi`   — Q2, the 80% range for the **average**
+- `own`     — that person's own one-way commute
+
+Blanks are fine: someone who skipped a question is dropped from that
+calculation only. Ranges typed backwards are silently corrected.
+`Data/room_2026_TEMPLATE.csv` is a copy to start from.
+
+### The three steps, the evening before
+
+```r
+source("R_code/fit_models.R")     # refits Mod_CT1 if the commutes changed
+source("R_code/build_console.R")  # writes the pre-filled console
+```
+```bash
+quarto render Presentations/Part1/Slides_Part1.qmd
+```
+
+`fit_models.R` compares the saved model's data with the CSV and refits only if
+they differ, so this is fast unless the room actually changed.
+
+### What now follows the room automatically
+
+`R_code/elicitation.R` derives all of it and is the only place any of it lives:
+
+| | |
+|---|---|
+| `sigma_prior` | Q1, pooled over everyone who answered it |
+| `mu_prior`, `sd_prior` | Q2, pooled — **between**-person disagreement and **within**-person uncertainty, variances added |
+| `CT` | their own commutes; the worked example runs on these |
+| `C1`, `C2` | the two scored combinations: C1 = the data's own (mean, sd), C2 deliberately higher and wider |
+| grid + axis limits | sized so both markers are always visible |
+| "after k" labels | follow however many commutes came in |
+
+The C1/C2 rule reproduces the combinations this example used when they were
+picked by hand — fed the old ten commutes it returns (31, 13) and (47, 18)
+against the hand-picked (30, 13) and (45, 18) — so the story is unchanged.
+
+### The one thing that changed on a slide you have rehearsed
+
+Q2 now **pools** across people instead of treating the room as one range, so
+the small print shows $\sigma_0 = \sqrt{\text{between}^2 + \text{within}^2}$
+rather than a single width divided by 2.563. This was forced: the console
+displays the pooled number, and the slide has to agree with what is on screen
+next to it.
+
+### Watch the render message
+
+`elicitation.R` prints a line every render:
+
+```
+elicitation.R: n = 18 | prior mu0 = 35.3 vs their actual mean = 34.1 | posterior favours C1
+```
+
+Usually C1 wins both the likelihood and the posterior. C1 always wins the
+**likelihood**. But if the room's collective prior sits far from their own
+data, the prior can outweigh a modest likelihood ratio and C2 shows the larger
+Product on the slide. That is the prior doing its job, and it is a good moment
+— but only if you knew before you were standing in front of them, which is why
+it is announced. The message says so explicitly when it happens.
+
+### The console
+
+`source("R_code/build_console.R")` writes
+`Prior_console/prior_console_filled.html` from the same CSV: it opens with
+everybody already in it, with no "example data" badge, posterior still hidden.
+
+Keep `prior_console_offline.html` for anyone answering live — type them in, or
+paste `ilo, ihi, lo, hi, own` lines into the import box.
+
+Two things worth knowing:
+
+- The filled build gets its **own browser-storage key**. The console restores
+  `localStorage` on boot, so without this it would quietly reopen on whatever
+  was in it last time and ignore everything baked in. Re-running the builder
+  starts clean from the new CSV; anything you add during the session is still
+  remembered.
+- It fetches its fonts from Google. With no wifi it still works, just in a
+  system font.
+
+If you build the console before the CSV exists it warns loudly and uses the
+placeholder room — do not present that.
+
+### While the CSV is missing
+
+The deck still renders, on a placeholder room, and the "What the room believes"
+slide carries a visible note saying so. The note disappears on its own once the
+real file is there.
+
+## Part 2 and the WAMBS template on the commuting model (30 Sep)
+
+The template used to walk through the marathon example. It now runs on
+`CommuteTimes_Mod2`, `CommuteTime ~ 1 + Distance_c + Departure_c`, the same
+model Part 2 builds, so participants meet one model all day.
+
+Everything quantitative was recomputed rather than substituted:
+
+| | marathon | commuting |
+|---|---|---|
+| brms default intercept prior | `student_t(3, 199.2, 24.9)` | `student_t(3, 26.5, 12.4)` |
+| brms default sigma prior | `student_t(3, 0, 24.9)` | `student_t(3, 0, 12.4)` |
+| prior plot ranges | 120 to 300 | -20 to 75 |
+| pp_check window | 120 to 300 | 0 to 80 |
+
+The teaching arc survives intact. A `normal(0,10)` prior on `Distance_c` spans
+the 42 km range of the data, implying predicted commutes swinging by more than
+400 minutes against observed commutes of 10 to 65, so the prior predictive check
+still throws up impossible negative medians and still gets fixed by tightening
+to `normal(0,2)`.
+
+Two sentences that used to assert results now compute them, because this is a
+different model and a template must not state a result it has not checked:
+the convergence paragraph reads the largest R-hat and smallest bulk ESS off the
+summary table, and the prior sensitivity paragraph counts how many parameters
+exceed 0.05 on each index. Both are phrased so they stay true whatever the
+numbers turn out to be, which also makes the template safer for a participant
+pointing it at their own model.
+
+### Before rendering
+
+`quarto render WAMBS_template/WAMBS_workflow_CommuteData.qmd` fits two
+prior-only brms models, so it needs cmdstanr and takes a few minutes. The
+rendered html it produces is what `WAMBS.qmd` and the Part 2 slides link to.

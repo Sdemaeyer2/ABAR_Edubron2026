@@ -129,15 +129,16 @@
   <header>
     <h1>Prior Elicitation Console</h1>
     <span id="store" class="hint" aria-live="polite"></span>
-    <span class="hint">offline copy — saves in this browser</span>
+    <span class="hint">offline copy, saves in this browser</span>
   </header>
   <p class="sub">
     <span class="q">“8 out of 10 people here commute between ___ and ___.”</span>
     &nbsp;·&nbsp;
     <span class="q">“If we averaged everyone's commute in this room, what would
     that average be?”</span>
-    <br><span class="hint">Two different questions: first about individual
-    people, then about the average. Both read as 80% ranges.</span>
+    <br><span class="hint">Three questions. The first two ask for an 80% range,
+    one about the spread and one about the average. The third asks for your own
+    commute time.</span>
   </p>
 
   <div class="grid">
@@ -171,13 +172,13 @@
         </form>
         <p class="hint">Tab through the fields, Enter to add. Q1 gives you σ
           (the spread of the data), Q2 gives you the prior on μ. The “own”
-          fields are optional — they become the data that updates the prior.</p>
+          fields are optional. They become the data that updates the prior.</p>
       </section>
 
       <section class="card">
         <h2>Or paste from a form</h2>
-        <label for="paste">ind low, ind high, avg low, avg high, own min, own km —
-          one person per line</label>
+        <label for="paste">ind low, ind high, avg low, avg high, own min, own km.
+          One person per line</label>
         <textarea id="paste" spellcheck="false" placeholder="10, 60, 35, 55, 28, 14&#10;15, 70, 40, 60, 35, 22"></textarea>
         <div class="bar">
           <button class="ghost" id="doPaste" type="button">Import lines</button>
@@ -212,12 +213,12 @@
                  aria-label="Each participant's low-to-high range"></svg>
             <figcaption>One row per participant. <b>Pale bar</b> = their Q1 range for
               individual people. <b>Dark bar</b> = their Q2 range for the
-              average. The pale bars are wider — that is the whole point.</figcaption>
+              average. Most pale bars are wider, which is the whole point.</figcaption>
           </figure>
 
           <div class="views" role="group" aria-label="which distribution to show">
             <button type="button" class="vbtn" data-view="both">Both</button>
-            <button type="button" class="vbtn" data-view="ind">Q1 · individuals</button>
+            <button type="button" class="vbtn" data-view="ind">Q1 · the spread</button>
             <button type="button" class="vbtn" data-view="avg">Q2 · the average</button>
             <span class="vspacer"></span>
             <button type="button" class="vbtn pbtn" id="postBtn"
@@ -226,9 +227,8 @@
 
           <figure>
             <svg id="curves" viewBox="0 0 700 230" role="img"
-                 aria-label="Elicited prior for the average, spread of individuals, and posterior"></svg>
-            <figcaption id="curveCap">Pooled prior against the posterior after
-              updating with the room's own commutes.</figcaption>
+                 aria-label="Prior on the spread and prior on the average, with the posterior"></svg>
+            <figcaption id="curveCap">The room's two priors.</figcaption>
           </figure>
         </div>
         <div class="veil-msg" id="veilMsg" hidden>
@@ -277,6 +277,8 @@
   // Both questions are asked as 80% ranges, so both use the same divisor.
   var Z = 2 * 1.2815515655446004;        // width of a central 80% interval, in sd
   var COVERAGE = "80%";
+  var SIGMA_LOGSD = 0.30;                // matches R_code/elicitation.R
+  var Q999 = 3.0902323061678132;         // qnorm(0.999)
 
   // Q1 is about the PARAMETER mu. Pooling across the room: the room's prior
   // variance = disagreement between people + the average person's own stated
@@ -294,7 +296,7 @@
   }
 
   // Q2 is about the OBSERVATIONS. Each person's range implies a sigma;
-  // we average those. This is NOT uncertainty about mu - it is the spread
+  // we average those. This is NOT uncertainty about mu. It is the spread
   // of the data itself, and it is the thing people most often conflate.
   function elicitedSigma(rows){
     var sds = rows.filter(function(r){
@@ -317,16 +319,61 @@
                .filter(function(v){ return typeof v === "number" && isFinite(v) && v>0; });
   }
 
-  // Conjugate normal update with sigma plugged in from the room's own spread.
-  function posterior(pri, y){
-    if(!pri || y.length < 2) return null;
-    var n = y.length;
-    var ybar = y.reduce(function(a,b){return a+b;},0)/n;
-    var s2 = y.reduce(function(a,v){return a+(v-ybar)*(v-ybar);},0)/(n-1);
-    var s = Math.sqrt(s2) || 1;
-    var prec = 1/(pri.sd*pri.sd) + n/s2;
-    var mu = (pri.mu/(pri.sd*pri.sd) + n*ybar/s2)/prec;
-    return {mu: mu, sd: Math.sqrt(1/prec), ybar: ybar, s: s, n: n};
+  // The slides approximate the joint posterior over (mu, sigma) on a grid.
+  // The console does the same, so the two always agree, and neither has to
+  // pretend sigma is known. Both marginals fall out of the same table.
+  function posterior(pri, sig, y){
+    if(!pri || !sig || y.length < 2) return null;
+    var n = y.length, i, j, k;
+    var sy = 0, syy = 0;
+    for(k=0;k<n;k++){ sy += y[k]; syy += y[k]*y[k]; }
+    var ybar = sy/n;
+    var s = Math.sqrt((syy - n*ybar*ybar)/(n-1)) || 1;
+
+    var muLo = Math.max(0, Math.min(pri.mu - 3.5*pri.sd, ybar - 3.5*s));
+    var muHi = Math.max(pri.mu + 3.5*pri.sd, ybar + 3.5*s);
+    var sgLo = 0.5;
+    var sgHi = Math.max(sig.sigma*Math.exp(3.5*SIGMA_LOGSD), s*2.5);
+
+    var NM = 220, NS = 220;
+    var mlog = Math.log(sig.sigma), ls2 = 2*SIGMA_LOGSD*SIGMA_LOGSD;
+    var mus = new Float64Array(NM), sgs = new Float64Array(NS);
+    var S = new Float64Array(NM), lpriM = new Float64Array(NM);
+    for(i=0;i<NM;i++){
+      mus[i] = muLo + (muHi-muLo)*i/(NM-1);
+      // sum of squared deviations, expanded so the data are touched once
+      S[i] = syy - 2*mus[i]*sy + n*mus[i]*mus[i];
+      lpriM[i] = -Math.pow(mus[i]-pri.mu,2)/(2*pri.sd*pri.sd);
+    }
+    var lp = new Float64Array(NM*NS), best = -Infinity, v;
+    for(j=0;j<NS;j++){
+      sgs[j] = sgLo + (sgHi-sgLo)*j/(NS-1);
+      var sg = sgs[j];
+      var lpriS = -Math.pow(Math.log(sg)-mlog,2)/ls2 - Math.log(sg);
+      var c = -n*Math.log(sg), inv = 1/(2*sg*sg);
+      for(i=0;i<NM;i++){
+        v = c - S[i]*inv + lpriS + lpriM[i];
+        lp[j*NM+i] = v;
+        if(v > best) best = v;
+      }
+    }
+
+    var dmu = new Float64Array(NM), dsg = new Float64Array(NS), tot = 0, p;
+    for(j=0;j<NS;j++) for(i=0;i<NM;i++){
+      p = Math.exp(lp[j*NM+i] - best);
+      dmu[i] += p; dsg[j] += p; tot += p;
+    }
+    var summ = function(x, d){
+      var m=0, q=0, t=0, i;
+      for(i=0;i<x.length;i++) t += d[i];
+      for(i=0;i<x.length;i++) m += x[i]*d[i]/t;
+      for(i=0;i<x.length;i++) q += (x[i]-m)*(x[i]-m)*d[i]/t;
+      return [m, Math.sqrt(q)];
+    };
+    var a = summ(mus, dmu), bb = summ(sgs, dsg);
+    return {mu: a[0], sd: a[1], sigMu: bb[0], sigSd: bb[1],
+            ybar: ybar, s: s, n: n,
+            muGrid: {x: mus, d: dmu}, sigGrid: {x: sgs, d: dsg}};
   }
 
   // ── drawing ────────────────────────────────────────────────────────────
@@ -339,11 +386,9 @@
       if(typeof r.ilo === "number") lo = Math.min(lo, r.ilo);
       if(typeof r.ihi === "number") hi = Math.max(hi, r.ihi);
     });
-    if(sig && pri){ lo = Math.min(lo, pri.mu - 3*sig.sigma);
-                    hi = Math.max(hi, pri.mu + 3*sig.sigma); }
+    // this axis carries the participant bars only; the two prior curves each
+    // have their own panel and their own scale
     roomData(rows).forEach(function(v){ lo = Math.min(lo, v); hi = Math.max(hi, v); });
-    if(pri){ lo = Math.min(lo, pri.mu-3*pri.sd); hi = Math.max(hi, pri.mu+3*pri.sd); }
-    if(pos){ lo = Math.min(lo, pos.mu-4*pos.sd); hi = Math.max(hi, pos.mu+4*pos.sd); }
     if(!isFinite(lo)){ lo = 10; hi = 70; }                 // nothing entered yet
     lo = Math.max(0, Math.floor((lo-5)/10)*10);
     hi = Math.ceil((hi+5)/10)*10;
@@ -358,18 +403,24 @@
     return e;
   }
 
-  function axis(svg, d, W, L, R, yBase){
+  function axisIn(svg, d, xa, xb, yBase, label){
     var ink = css("--muted"), line = css("--line");
-    svg.appendChild(el("line",{x1:L,y1:yBase,x2:W-R,y2:yBase,stroke:line,"stroke-width":1}));
-    var step = (d[1]-d[0]) > 90 ? 20 : 10;
-    for(var v=d[0]; v<=d[1]+.001; v+=step){
-      var x = L + (v-d[0])/(d[1]-d[0])*(W-L-R);
+    svg.appendChild(el("line",{x1:xa,y1:yBase,x2:xb,y2:yBase,stroke:line,"stroke-width":1}));
+    var span = d[1]-d[0];
+    var step = span > 90 ? 20 : (span > 45 ? 10 : 5);
+    var first = Math.ceil(d[0]/step)*step;
+    for(var v=first; v<=d[1]+.001; v+=step){
+      var x = xa + (v-d[0])/span*(xb-xa);
       svg.appendChild(el("line",{x1:x,y1:yBase,x2:x,y2:yBase+4,stroke:line,"stroke-width":1}));
       svg.appendChild(el("text",{x:x,y:yBase+17,"text-anchor":"middle","font-size":11,
         fill:ink,"font-family":"var(--font)"}, String(Math.round(v))));
     }
-    svg.appendChild(el("text",{x:(L+W-R)/2,y:yBase+34,"text-anchor":"middle","font-size":11,
-      fill:ink,"font-family":"var(--font)"}, "minutes, one way"));
+    svg.appendChild(el("text",{x:(xa+xb)/2,y:yBase+34,"text-anchor":"middle","font-size":11,
+      fill:ink,"font-family":"var(--font)"}, label));
+  }
+
+  function axis(svg, d, W, L, R, yBase){
+    axisIn(svg, d, L, W-R, yBase, "minutes, one way");
   }
 
   function drawRanges(rows, d){
@@ -382,11 +433,11 @@
     var accent = css("--accent"), ink2 = css("--ink-2");
     rows.forEach(function(r,i){
       var y = TOP + i*11 + 5;
-      // Q2 first, underneath: the wide one
+      // Q1 first, underneath: the wide one (individuals)
       if(typeof r.ilo === "number" && typeof r.ihi === "number")
         svg.appendChild(el("line",{x1:sx(r.ilo),y1:y,x2:sx(r.ihi),y2:y,
           stroke:ink2,"stroke-width":7,"stroke-linecap":"round",opacity:.20}));
-      // Q1 on top: the narrow one
+      // Q2 on top: the narrow one (the average)
       svg.appendChild(el("line",{x1:sx(r.lo),y1:y,x2:sx(r.hi),y2:y,
         stroke:ink2,"stroke-width":4,"stroke-linecap":"round",opacity:.75}));
       svg.appendChild(el("circle",{cx:sx((r.lo+r.hi)/2),cy:y,r:2.6,fill:accent}));
@@ -395,6 +446,35 @@
           stroke:accent,"stroke-width":1.6,opacity:.9}));
     });
     axis(svg, d, W, L, R, yBase);
+  }
+
+  // density of a lognormal, so the console draws the same prior on sigma
+  // that the slides draw
+  function dln(x, m, s){
+    if(!(x > 0)) return 0;
+    return Math.exp(-Math.pow(Math.log(x)-m, 2)/(2*s*s)) / (x*s*Math.sqrt(2*Math.PI));
+  }
+
+  function lnormPath(m, s, d, sx, yTop, yBase){
+    var pts=[], i, x, peak = dln(Math.exp(m - s*s), m, s);
+    for(i=0;i<=240;i++){
+      x = d[0] + (d[1]-d[0])*i/240;
+      pts.push([sx(x), yBase - (dln(x,m,s)/peak)*(yBase-yTop)]);
+    }
+    return "M" + pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join("L");
+  }
+
+  // draw any density given as (x, d) arrays, scaled to its own peak
+  function seriesPath(xs, ds, dom, sx, yTop, yBase){
+    var i, peak = 0, pts = [];
+    for(i=0;i<ds.length;i++) if(ds[i] > peak) peak = ds[i];
+    if(!(peak > 0)) return "";
+    for(i=0;i<xs.length;i++){
+      if(xs[i] < dom[0] || xs[i] > dom[1]) continue;
+      pts.push([sx(xs[i]), yBase - (ds[i]/peak)*(yBase-yTop)]);
+    }
+    if(pts.length < 2) return "";
+    return "M" + pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join("L");
   }
 
   function normPath(mu, sd, d, sx, yTop, yBase){
@@ -409,65 +489,92 @@
 
   function drawCurves(pri, pos, d, sig, view, showPost){
     var svg = $("curves"); svg.textContent = "";
-    var W=700, H=230, L=34, R=18, TOP=18, yBase=H-46;
+    var W=700, H=230, TOP=30, yBase=H-46;
     svg.setAttribute("viewBox","0 0 "+W+" "+H);
-    var sx = function(v){ return L + (v-d[0])/(d[1]-d[0])*(W-L-R); };
     var ink2 = css("--ink-2"), accent = css("--accent"), muted = css("--muted");
-    var wantInd = (view !== "avg"), wantAvg = (view !== "ind");
-    if(pri && sig && wantInd){
-      // Q1: the spread of individual commutes the room believes in
-      var o = normPath(pri.mu, sig.sigma, d, sx, TOP, yBase);
-      svg.appendChild(el("path",{d:o,fill:"none",stroke:muted,"stroke-width":2,
-        "stroke-dasharray": view === "ind" ? "0" : "5 4",
-        "stroke-width": view === "ind" ? 2.6 : 2}));
-      if(view === "ind")
-        svg.appendChild(el("path",{d:o+"L"+sx(d[1])+","+yBase+"L"+sx(d[0])+","+yBase+"Z",
-          fill:muted,opacity:.14}));
-      svg.appendChild(el("text",{x:sx(Math.min(d[1]-2, pri.mu + 2.1*sig.sigma)),
-        y:yBase-16,"text-anchor":"middle","font-size":10,fill:muted,
-        "font-family":"var(--font)"}, "individual commutes (Q1)"));
-    }
-    if(pri && wantAvg){
-      var p = normPath(pri.mu, pri.sd, d, sx, TOP, yBase);
-      svg.appendChild(el("path",{d:p+"L"+sx(d[1])+","+yBase+"L"+sx(d[0])+","+yBase+"Z",
-        fill:ink2,opacity:.16}));
-      svg.appendChild(el("path",{d:p,fill:"none",stroke:ink2,"stroke-width":2.2}));
-      var q1x = Math.min(sx(pri.mu + 1.6*pri.sd), W - R - 60);
-      svg.appendChild(el("text",{x:q1x,y:TOP+2,"text-anchor":"middle","font-size":11,
-        fill:ink2,"font-family":"var(--font)"}, "prior on the average (Q2)"));
-    }
-    if(pos && showPost){
-      var q = normPath(pos.mu, pos.sd, d, sx, TOP, yBase);
-      svg.appendChild(el("path",{d:q+"L"+sx(d[1])+","+yBase+"L"+sx(d[0])+","+yBase+"Z",
-        fill:accent,opacity:.18}));
-      svg.appendChild(el("path",{d:q,fill:"none",stroke:accent,"stroke-width":2.6}));
-      svg.appendChild(el("line",{x1:sx(pos.mu),y1:TOP+6,x2:sx(pos.mu),y2:yBase,
-        stroke:accent,"stroke-width":1,"stroke-dasharray":"3 3"}));
-      var lx = Math.min(Math.max(sx(pos.mu), L+46), W-R-46);
-      svg.appendChild(el("text",{x:lx,y:TOP+2,"text-anchor":"middle","font-size":11,
-        fill:accent,"font-family":"var(--font)"}, "posterior"));
-    }
-    if(!pri)
+
+    if(!pri){
       svg.appendChild(el("text",{x:W/2,y:H/2,"text-anchor":"middle","font-size":13,
         fill:muted,"font-family":"var(--font)"}, "Add responses to see the prior take shape"));
-    axis(svg, d, W, L, R, yBase);
+      return;
+    }
+
+    // One panel per unknown, each on its own scale, exactly as on the slide.
+    var kinds = [];
+    if(view !== "avg" && sig) kinds.push("sig");
+    if(view !== "ind")        kinds.push("mu");
+    if(!kinds.length)         kinds.push("mu");
+
+    var pad = 28, gap = 36;
+    var each = (W - pad*2 - gap*(kinds.length-1)) / kinds.length;
+
+    kinds.forEach(function(kind, i){
+      var xa = pad + i*(each+gap), xb = xa + each;
+      var dd, sx, path, mark, title, label;
+
+      if(kind === "sig"){
+        dd = [0, Math.ceil(Math.exp(Math.log(sig.sigma) + SIGMA_LOGSD*Q999))];
+        if(pos && showPost) dd[1] = Math.max(dd[1], Math.ceil(pos.sigMu + 4*pos.sigSd));
+        sx = function(v){ return xa + (v-dd[0])/(dd[1]-dd[0])*(xb-xa); };
+        path = lnormPath(Math.log(sig.sigma), SIGMA_LOGSD, dd, sx, TOP, yBase);
+        mark = sig.sigma;
+        title = "Q1  where is the SPREAD?  (sigma)";
+        label = "minutes of spread";
+      } else {
+        dd = [Math.max(0, Math.floor((pri.mu - 3.2*pri.sd)/10)*10),
+              Math.ceil((pri.mu + 3.2*pri.sd)/10)*10];
+        if(pos && showPost){
+          dd[0] = Math.max(0, Math.min(dd[0], Math.floor((pos.mu - 4*pos.sd)/10)*10));
+          dd[1] = Math.max(dd[1], Math.ceil((pos.mu + 4*pos.sd)/10)*10);
+        }
+        sx = function(v){ return xa + (v-dd[0])/(dd[1]-dd[0])*(xb-xa); };
+        path = normPath(pri.mu, pri.sd, dd, sx, TOP, yBase);
+        mark = pri.mu;
+        title = "Q2  where is the AVERAGE?  (mu)";
+        label = "minutes, one way";
+      }
+
+      svg.appendChild(el("path",{d:path+"L"+xb+","+yBase+"L"+xa+","+yBase+"Z",
+        fill:ink2,opacity:.16}));
+      svg.appendChild(el("path",{d:path,fill:"none",stroke:ink2,"stroke-width":2.2}));
+      svg.appendChild(el("line",{x1:sx(mark),y1:TOP+4,x2:sx(mark),y2:yBase,
+        stroke:accent,"stroke-width":1,"stroke-dasharray":"3 3"}));
+
+      if(pos && showPost){
+        var g = (kind === "sig") ? pos.sigGrid : pos.muGrid;
+        var q = seriesPath(g.x, g.d, dd, sx, TOP, yBase);
+        if(q){
+          svg.appendChild(el("path",{d:q+"L"+xb+","+yBase+"L"+xa+","+yBase+"Z",
+            fill:accent,opacity:.18}));
+          svg.appendChild(el("path",{d:q,fill:"none",stroke:accent,"stroke-width":2.6}));
+          // a legend chip on the panel's own top-left, so it can never sit on a curve
+          svg.appendChild(el("text",{x:xa,y:TOP-12,"text-anchor":"start","font-size":11,
+            fill:accent,"font-family":"var(--font)"}, "posterior"));
+        }
+      }
+
+      svg.appendChild(el("text",{x:(xa+xb)/2,y:TOP-12,"text-anchor":"middle","font-size":11,
+        fill:ink2,"font-family":"var(--font)"}, title));
+      axisIn(svg, dd, xa, xb, yBase, label);
+    });
   }
 
-  // ── R export ───────────────────────────────────────────────────────────
   function rCode(pri, pos, rows, sig){
     if(!pri) return "—";
     var y = roomData(rows);
     var L = [];
-    L.push("# Paste these four numbers into the setup chunk of Slides_Part1.qmd");
+    L.push("# The slides read Data/room_2026.csv, so you do not normally need this.");
+    L.push("# If people answered live: click Save CSV, put that file at");
+    L.push("# Data/room_2026.csv, then re-render. These are the numbers it gives.");
     L.push("# Elicited in the room, n = " + pri.n + " participants");
     L.push("");
     if(sig){
-      L.push("# Q1 - how spread out are INDIVIDUAL commutes?  -> prior on sigma");
+      L.push("# Q1: how spread out are INDIVIDUAL commutes, giving the prior on sigma");
       L.push("ind_low  <- " + Math.round(sig.meanLo));
       L.push("ind_high <- " + Math.round(sig.meanHi));
       L.push("");
     }
-    L.push("# Q2 - where is the AVERAGE?  -> prior on mu");
+    L.push("# Q2: where is the AVERAGE, giving the prior on mu");
     L.push("mu_low   <- " + Math.round(pri.mu - pri.sd*Z/2));
     L.push("mu_high  <- " + Math.round(pri.mu + pri.sd*Z/2));
     L.push("");
@@ -484,7 +591,8 @@
     L.push("  data  = CommuteData,");
     L.push("  prior = c(");
     L.push("    prior(normal(" + pri.mu.toFixed(1) + ", " + pri.sd.toFixed(1) + "), class = Intercept),");
-    L.push("    prior(lognormal(" + (sig ? Math.log(sig.sigma).toFixed(2) : "2.5") + ", 0.3), class = sigma)");
+    L.push("    prior(lognormal(" + (sig ? Math.log(sig.sigma).toFixed(2) : "2.5") +
+           ", " + SIGMA_LOGSD.toFixed(2) + "), class = sigma)");
     L.push("  ),");
     L.push("  backend = \"cmdstanr\", seed = 1975");
     L.push(")");
@@ -501,8 +609,10 @@
     }
     if(pos){
       L.push("");
-      L.push("# Conjugate check: posterior mu = " + pos.mu.toFixed(1) +
-             "  (sd " + pos.sd.toFixed(2) + ")");
+      L.push("# Grid posterior over both unknowns, as on the slides:");
+      L.push("#   mu    = " + pos.mu.toFixed(1) + "  (sd " + pos.sd.toFixed(2) + ")");
+      L.push("#   sigma = " + pos.sigMu.toFixed(1) + "  (sd " + pos.sigSd.toFixed(2) +
+             ")   their own sd was " + pos.s.toFixed(1));
     }
     return L.join("\n");
   }
@@ -513,7 +623,7 @@
     var pri = pooled(rows);
     var sig = elicitedSigma(rows);
     var y = roomData(rows);
-    var pos = posterior(pri, y);
+    var pos = posterior(pri, sig, y);
     var d = domain(rows, pri, pos, sig);
 
     $("n").textContent = rows.length;
@@ -529,18 +639,21 @@
     $("calc").textContent = pri
       ? "an " + COVERAGE + " range reaches \u00b1" + (Z/2).toFixed(2)
         + " sd either side of the centre (cf. \u00b11.96 for 95%),\n"
-        + "so it is " + Z.toFixed(3) + " sd WIDE -- and a low-high pair gives a width,\n"
+        + "so it is " + Z.toFixed(3) + " sd WIDE, and a low-high pair gives a width,\n"
         + "not a half-width, so sd = width / " + Z.toFixed(3) + "\n"
         + (sig ? "Q1  sigma = mean((high - low) / " + Z.toFixed(3) + ") = " + fmt(sig.sigma)
-                 + "   (mean range " + fmt(sig.meanLo, 0) + "-" + fmt(sig.meanHi, 0) + ")\n"
-               : "Q1  -\n")
+                 + "   (mean range " + fmt(sig.meanLo, 0) + " to " + fmt(sig.meanHi, 0) + ")\n"
+               : "Q1  not answered yet\n")
         + "Q2  mu0 = " + fmt(pri.mu) + "   sd0 = sqrt(between " + fmt(pri.between)
         + "^2 + within " + fmt(pri.within) + "^2) = " + fmt(pri.sd)
       : "—";
     $("ybar").innerHTML = y.length
       ? fmt(y.reduce(function(a,b){return a+b;},0)/y.length) + ' <small>n=' + y.length + '</small>'
       : '<small>no own-commute data yet</small>';
-    $("post").innerHTML = pos ? fmt(pos.mu) + ' <small>± ' + fmt(pos.sd,2) + '</small>' : "—";
+    $("post").innerHTML = pos
+      ? fmt(pos.mu) + ' <small>± ' + fmt(pos.sd,2) + '</small>'
+        + '<br><small style="font-weight:400">σ ' + fmt(pos.sigMu) + ' ± ' + fmt(pos.sigSd,2) + '</small>'
+      : "—";
     $("postTile").hidden = !state.showPost;
 
     Array.prototype.forEach.call(document.querySelectorAll(".vbtn[data-view]"), function(b){
@@ -552,16 +665,21 @@
     drawRanges(rows, d);
     drawCurves(pri, pos, d, sig, state.view, state.showPost);
     var cap = {
-      both: "Q1 (dashed, wide) is the spread of individual commutes. Q2 (solid, narrow) " +
-            "is our uncertainty about the average. Same centre, different meaning.",
-      ind:  "Q1 only — where the room thinks individual commutes fall. This is a " +
-            "statement about the data, and it does not shrink with more data.",
-      avg:  "Q2 only — where the room thinks the average is. This is a statement " +
-            "about a parameter, and it does shrink as observations arrive."
+      both: "One prior for each unknown in the model. Left: how spread out individual " +
+            "commutes are. Right: where the average sits. Different axes, different " +
+            "quantities, and we are uncertain about both.",
+      ind:  "Q1 only. The prior on sigma, the spread of the data. The dotted line is " +
+            "the value the room elicited, which is the median of this distribution. " +
+            "Sigma is learned from the data too, so this one also has a posterior.",
+      avg:  "Q2 only. The prior on mu, the average. This is what shrinks as " +
+            "observations arrive. Turning the posterior on shows how far the room's " +
+            "own commutes move it."
     }[state.view];
     if(state.showPost && pos)
-      cap += "  Posterior after " + pos.n + " commutes from the room (σ plugged in at " +
-             fmt(pos.s) + " min).";
+      cap += "  Posterior after " + pos.n + " commutes from the room: μ = " +
+             fmt(pos.mu) + " ± " + fmt(pos.sd) + ", σ = " + fmt(pos.sigMu) +
+             " ± " + fmt(pos.sigSd) + ". Both come off the same grid over the two " +
+             "unknowns, so neither is held fixed.";
     $("curveCap").textContent = cap;
     $("rcode").textContent = rCode(pri, pos, rows, sig);
 
@@ -574,7 +692,7 @@
   function persist(){
     if(docRef){ docRef.set({rows: state.rows, seeded: state.seeded, revealed: state.revealed,
                             view: state.view, showPost: state.showPost})
-      .catch(function(){ note("not saved — working locally"); }); }
+      .catch(function(){ note("not saved, working locally"); }); }
     try{ localStorage.setItem("priorConsole", JSON.stringify(state)); }catch(e){}
   }
   function note(msg){ $("store").textContent = msg; }
@@ -669,7 +787,7 @@
     }).catch(function(){
       var r = document.createRange(); r.selectNodeContents($("rcode"));
       var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-      btn.textContent = "Selected — press ⌘C";
+      btn.textContent = "Selected, press ⌘C";
       setTimeout(function(){ btn.textContent = "Copy R code"; }, 2200);
     });
   });

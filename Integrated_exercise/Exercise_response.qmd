@@ -498,7 +498,7 @@ Time to get insight in the amount of autocorrelation. A first check is plotting 
 #| cache: false
 
 mcmc_neff(
-  neff_ratio(M3b)
+  brms::neff_ratio(M3b)
   ) + 
   yaxis_text(hjust = 1)
 ```

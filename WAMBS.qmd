@@ -7,18 +7,9 @@ format: html
 
 During the course we introduced the WAMBS (when to Worry and how to Avoid the Misuse of Bayesian Statistics) check-list as a tool to structure your thinking and checking of your Bayesian model(s). 
 
-To see an example of this WAMBS checklist applied to a fitted model, click <a href="WAMBS_template/WAMBS_workflow_MarathonData.html" target="blank">here</a>.
+To see an example of this WAMBS checklist applied to a fitted model, click <a href="WAMBS_template/WAMBS_workflow_CommuteData.html" target="blank">here</a>.
 
-::: {.callout-note}
-## About the dataset in the template
-The template walks through an older example on marathon times, while the
-workshop itself uses the commuting data. That is deliberate: the WAMBS workflow
-is identical whatever the dataset, and seeing it on a second example makes the
-steps easier to transfer to your own model. Every step in the template applies
-unchanged to the commuting model.
-:::
-
-The Quarto document to make this report can be found <a href="WAMBS_template/WAMBS_workflow_MarathonData.qmd" target="blank">here</a> (right-click to save).
+The Quarto document to make this report can be found <a href="WAMBS_template/WAMBS_workflow_CommuteData.qmd" target="blank">here</a> (right-click to save).
 
 If you want to render the Quarto document and have the references in there, you also need to download the `references.bib` file and store it in the same folder as the Quarto document. The references file can be downloaded <a href="WAMBS_template/references.bib" target="blank">here</a> (right-click to save).
 
