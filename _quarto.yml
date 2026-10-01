@@ -13,6 +13,7 @@ project:
     - Presentations/Part1/Slides_Part1.qmd
     - Presentations/Part2/Slides_Part2.qmd
     - Presentations/Part3/Slides_Part3.qmd
+    - Presentations/Appendices/Slides_Appendices.qmd
     - Integrated_exercise/Exercise.qmd
     - Integrated_exercise/Exercise_response.qmd
 

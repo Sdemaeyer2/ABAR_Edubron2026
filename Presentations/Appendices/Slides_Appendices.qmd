@@ -1,0 +1,280 @@
+---
+title: "Applied Bayesian Analyses in R"
+subtitle: "Appendices"
+author: "Sven De Maeyer"
+format: 
+  revealjs:
+    theme: [default, ../edubron-slides.scss, ../../_uantwerpen-brand.scss]
+    width: 1422
+    height: 805
+    slide-number: true
+self-contained: true
+execute: 
+  echo: false
+  include: true
+  output: true
+code:
+  code-copy: true
+  code-line-numbers: true
+code-annotations: hover
+---
+
+```{r}
+#| echo: false
+#| include: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+
+theme_set(theme_linedraw(base_size = 15))
+
+NAVY <- "#002e65"
+RED  <- "#ea2c38"
+GREY <- "#5a6b80"
+
+# ── One made-up study, used on every slide in this appendix ──────────
+# A remedial programme is given to the pupils who started low. By the
+# posttest they have caught up. Nothing exotic: a pretest, a posttest
+# and a condition. Both tests are turned into z scores, as they would be
+# in the example.
+set.seed(2026)
+n <- 60
+
+d <- tibble(
+  cond    = rep(c("control", "programme"), each = n),
+  pre_raw = rnorm(2 * n, mean = ifelse(cond == "programme", -1, 1), sd = 0.6)
+) |>
+  mutate(
+    post_raw = 0.9 * pre_raw + 1.6 * (cond == "programme") + rnorm(2 * n, sd = 0.40),
+    pretest  = as.vector(scale(pre_raw)),
+    posttest = as.vector(scale(post_raw)),
+    cond     = factor(cond, levels = c("control", "programme"))
+  )
+
+m1 <- lm(posttest ~ pretest, data = d)
+m2 <- lm(posttest ~ pretest + cond, data = d)
+
+b_pooled   <- unname(coef(m1)["pretest"])
+b_adjusted <- unname(coef(m2)["pretest"])
+b_dummy    <- unname(coef(m2)["condprogramme"])
+
+# how far apart are the two conditions, before and after?
+gap <- function(v) abs(diff(tapply(v, d$cond, mean)))
+gap_pre  <- unname(gap(d$pretest))
+gap_post <- unname(gap(d$posttest))
+
+# the pre-post relationship INSIDE the conditions
+r_within <- cor(resid(lm(pretest ~ cond, d)), resid(lm(posttest ~ cond, d)))
+
+# the same model, but on a properly randomised study
+set.seed(7)
+nr <- 60
+r <- tibble(
+  cond    = rep(c("control", "programme"), each = nr),
+  pre_raw = rnorm(2 * nr)
+) |>
+  mutate(
+    post_raw = 0.8 * pre_raw + 0.5 * (cond == "programme") + rnorm(2 * nr, sd = 0.55),
+    pretest  = as.vector(scale(pre_raw)),
+    posttest = as.vector(scale(post_raw)),
+    cond     = factor(cond, levels = c("control", "programme"))
+  )
+
+rnd_pooled   <- unname(coef(lm(posttest ~ pretest, data = r))["pretest"])
+rnd_adjusted <- unname(coef(lm(posttest ~ pretest + cond, data = r))["pretest"])
+rnd_gap_pre  <- unname(abs(diff(tapply(r$pretest,  r$cond, mean))))
+rnd_gap_post <- unname(abs(diff(tapply(r$posttest, r$cond, mean))))
+
+XL <- c(-2.6, 2.6)
+YL <- c(-3.0, 3.0)
+```
+
+# Can a standardized coefficient be larger than 1?
+
+## The set-up
+
+A pretest and a posttest, both turned into [z scores]{.hl}.
+
+An experiment with [two conditions]{.hl}, so the model carries a dummy as well.
+
+. . .
+
+$$\text{posttest} = \text{pretest} + \text{condition}$$
+
+. . .
+
+The coefficient for the pretest. Is it stuck between [-1 and +1]{.hl}?
+
+## First instinct: yes
+
+```{r}
+#| fig-height: 4.2
+#| fig-width: 8.5
+#| fig-align: center
+ggplot(d, aes(pretest, posttest)) +
+  geom_point(colour = GREY, alpha = .55, size = 2.6) +
+  geom_abline(intercept = coef(m1)[1], slope = b_pooled,
+              colour = NAVY, linewidth = 1.3) +
+  coord_cartesian(xlim = XL, ylim = YL) +
+  labs(x = "pretest (z)", y = "posttest (z)")
+```
+
+With [only the pretest]{.hl} in the model the coefficient is `r round(b_pooled, 2)`.
+
+That number is literally the correlation between the two tests, so it can never pass 1.
+
+# Now put the condition in the model {background-color="#002e65" transition="slide-in"}
+
+## The same data, read a second way
+
+```{r}
+#| fig-height: 4.2
+#| fig-width: 8.5
+#| fig-align: center
+ggplot(d, aes(pretest, posttest, colour = cond)) +
+  geom_point(alpha = .6, size = 2.6) +
+  geom_abline(intercept = coef(m2)[1], slope = b_adjusted,
+              colour = NAVY, linewidth = 1.3) +
+  geom_abline(intercept = coef(m2)[1] + b_dummy, slope = b_adjusted,
+              colour = RED, linewidth = 1.3) +
+  scale_colour_manual(values = c(control = NAVY, programme = RED)) +
+  coord_cartesian(xlim = XL, ylim = YL) +
+  labs(x = "pretest (z)", y = "posttest (z)", colour = NULL) +
+  theme(legend.position = "top")
+```
+
+Same points. The coefficient went from `r round(b_pooled, 2)` to [`r round(b_adjusted, 2)`]{.hl}.
+
+## Nothing odd happened to the data
+
+Inside each condition, the pretest and the posttest correlate at [`r round(r_within, 2)`]{.hl}.
+
+A perfectly ordinary number. Nothing above 1 anywhere in the data.
+
+. . .
+
+So the coefficient did not become large because the relationship became impossibly strong.
+
+It became large because [the question it answers changed]{.hl}.
+
+## Here is what actually changed
+
+```{r}
+#| fig-height: 4.0
+#| fig-width: 10
+#| fig-align: center
+gaps <- d |>
+  select(cond, pretest, posttest) |>
+  pivot_longer(c(pretest, posttest), names_to = "moment", values_to = "z") |>
+  mutate(moment = factor(moment,
+                         levels = c("pretest", "posttest"),
+                         labels = c("at the start", "at the end")))
+
+gmeans <- gaps |>
+  group_by(moment, cond) |>
+  summarise(z = mean(z), .groups = "drop")
+
+ggplot(gaps, aes(z, cond, colour = cond)) +
+  geom_jitter(width = 0, height = .18, alpha = .40, size = 2) +
+  geom_point(data = gmeans, size = 6, shape = 18) +
+  scale_colour_manual(values = c(control = NAVY, programme = RED), guide = "none") +
+  facet_wrap(~ moment, ncol = 1) +
+  coord_cartesian(xlim = XL) +
+  labs(x = "z score", y = NULL) +
+  theme(panel.grid.major.y = element_blank())
+```
+
+The conditions start [`r round(gap_pre, 2)` standard deviations apart]{.hl}
+and finish [`r round(gap_post, 2)` standard deviations apart]{.hl}.
+
+## In one sentence
+
+<br>
+
+### The dummy ate [most of the pretest differences]{.hl} and [almost none of the posttest differences]{.hl}.
+
+<br>
+
+. . .
+
+The coefficient is a slope, so it is a rise divided by a run.
+
+Putting the condition in the model took away most of the [run]{.hl} and left the [rise]{.hl} alone.
+
+## Why that lifts the number above 1
+
+Standardizing makes the [whole group]{.hl} one standard deviation wide, on both tests.
+
+That is what keeps the coefficient inside -1 and +1 when the pretest stands alone.
+
+. . .
+
+Once the condition is in the model, the coefficient only uses the variation [inside]{.hl} each condition.
+
+But it is still reported in whole group units.
+
+. . .
+
+Two different rulers. [That is the whole trick.]{.hl}
+
+## A study that produces this
+
+A remedial programme is offered to the pupils who [started low]{.hl}.
+
+By the posttest they have [caught up]{.hl} with everyone else.
+
+. . .
+
+Ignore the condition and the two tests look only mildly related, because the
+group that scored low at the start no longer scores low at the end.
+
+. . .
+
+Put the condition in the model and the relationship inside each group becomes
+visible again. The pooled picture was hiding it.
+
+## In a randomised experiment this does not happen
+
+Random assignment means the conditions [start in the same place]{.hl}.
+
+| | without the dummy | with the dummy | gap at the start | gap at the end |
+|---|---|---|---|---|
+| remedial study | `r round(b_pooled, 2)` | [`r round(b_adjusted, 2)`]{.hl} | `r round(gap_pre, 2)` SD | `r round(gap_post, 2)` SD |
+| randomised study | `r round(rnd_pooled, 2)` | `r round(rnd_adjusted, 2)` | `r round(rnd_gap_pre, 2)` SD | `r round(rnd_gap_post, 2)` SD |
+
+. . .
+
+In the randomised study the dummy barely touches the coefficient, because there
+were no pretest differences for it to take away.
+
+## So if your coefficient passes 1
+
+Do not report a remarkably strong pretest effect.
+
+. . .
+
+Go and look at [the balance at the start]{.hl}.
+
+The model is telling you that your conditions were [further apart on the pretest than they ended up on the posttest]{.hl}.
+
+. . .
+
+In a randomised design that is a question about the randomisation.
+
+In a quasi experiment it is usually the design doing exactly what it was meant to do.
+
+## And for your priors
+
+The coefficient can in principle be any number, so a prior does not need a wall at 1.
+
+A prior centred somewhere around 0.5 with a sensible width says what you believe
+about pre and post designs, and still leaves room for a surprise.
+
+::: {.calcnote}
+**For the curious.** The adjusted coefficient equals the within condition
+correlation, multiplied by the share of posttest spread that survives the dummy
+and divided by the share of pretest spread that survives it. It passes 1 exactly
+when the conditions differ more at the start than at the end. Everything on these
+slides follows from that one ratio, and nothing else is needed to read it.
+:::
