@@ -15,7 +15,7 @@ The htlm-version of the slides for this part can be found <a href="Presentations
 
 ### Data
 
-For this part, we again use the commuting dataset. The data can be downloaded <a href="Data/CommuteData.csv" target="blank"> here </a> (right-click to save as). 
+For this part, we again use the commuting dataset. The data can be downloaded <a href="Data/CommuteData.RData" target="blank"> here </a> (right-click to save as). 
 
 ## References and resources
 

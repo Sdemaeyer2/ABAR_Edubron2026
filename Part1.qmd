@@ -19,7 +19,7 @@ The htlm-version of the slides for this first part can be found <a href="Present
 
 ### Data
 
-For this first part, we use a straightforward dataset on how long it takes people to get to work. The data can be downloaded <a href="Data/CommuteData.csv" target="blank"> here </a> (right-click to save as). 
+For this first part, we use a straightforward dataset on how long it takes people to get to work. The data can be downloaded <a href="Data/CommuteData.RData" target="blank"> here </a> (right-click to save as). 
 
 ## References and resources
 
