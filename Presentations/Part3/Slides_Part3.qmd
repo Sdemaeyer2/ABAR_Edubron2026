@@ -472,6 +472,90 @@ posterior_PD %>%
   scale_y_continuous(name = "", breaks = NULL)
 ```
 
+## From a raw effect to a standardized effect size
+
+::::: columns
+::: {.column width="50%"}
+`b_Experimental_condition` is on the scale of the writing score
+
+<br>
+
+To compare with the literature we want a [standardized effect size]{.hl}
+
+<br>
+
+`Cohen's d = b / SD`
+
+<br>
+
+Do this [for every draw]{.hl-blue} → a posterior distribution of *d*
+:::
+
+::: {.column width="50%"}
+<b>But: which SD?</b>
+
+-   observed SD of `SecondVersion` (all students)
+
+-   pooled SD of `SecondVersion` (within the two conditions): the classic Cohen's *d*
+
+::: {.calcnote}
+The numerator is the [pretest-adjusted]{.hl} difference. The denominator is a choice, so always report which SD you used.
+:::
+:::
+:::::
+
+## Effect sizes based on the draws
+
+```{r}
+#| echo: true
+#| message: false
+#| code-line-numbers: "1-2|3-4|8|9"
+#| fig-width: 10
+#| fig-height: 4.6
+#| out-width: "90%"
+#| output-location: slide
+# observed SD of the posttest (all students)
+SD_observed <- sd(WritingData$SecondVersion)
+# pooled within-condition SD of the posttest
+SD_pooled <- sigma(lm(SecondVersion ~ factor(Experimental_condition), data = WritingData))
+
+posterior_d <- posterior_PD %>%
+  mutate(
+    d_observed = b_Experimental_condition / SD_observed,
+    d_pooled   = b_Experimental_condition / SD_pooled
+  ) %>%
+  select(d_observed, d_pooled) %>%
+  pivot_longer(everything(), names_to = "denominator", values_to = "d")
+
+ggplot(posterior_d, aes(x = d, y = denominator)) +
+  stat_halfeye(.width = c(.50, .89)) +
+  geom_vline(xintercept = c(-.1, .1), linetype = "dashed") +  # ROPE
+  scale_x_continuous("Cohen's d", breaks = seq(-.1, .7, by = .1)) +
+  scale_y_discrete("")
+```
+
+## Effect sizes as probabilities
+
+<br>
+
+The draws let us answer: [how likely is the effect at least small / medium?]{.hl}
+
+<br>
+
+```{r}
+#| echo: true
+#| message: false
+posterior_d %>%
+  group_by(denominator) %>%
+  summarise(
+    median   = median(d),
+    lower_89 = quantile(d, .055),
+    upper_89 = quantile(d, .945),
+    `P(d > 0.2)` = mean(d > .2),
+    `P(d > 0.5)` = mean(d > .5)
+  )
+```
+
 ## Hypothetical Outcome Plots (HOPs)
 
 Code: see separate script called `HOP_script.R`
