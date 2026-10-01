@@ -494,12 +494,12 @@ Do this [for every draw]{.hl-blue} → a posterior distribution of *d*
 ::: {.column width="50%"}
 <b>But: which SD?</b>
 
--   observed SD of `SecondVersion` (all students)
+-   pooled SD of `SecondVersion` (within the two conditions): [one observed value]{.hl-blue}, the classic Cohen's *d*
 
--   pooled SD of `SecondVersion` (within the two conditions): the classic Cohen's *d*
+-   `sqrt(sd_Class__Intercept^2 + sigma^2)`: between-class + within-class SD from the model, [a value for every draw]{.hl-blue}
 
 ::: {.calcnote}
-The numerator is the [pretest-adjusted]{.hl} difference. The denominator is a choice, so always report which SD you used.
+The numerator is the [pretest-adjusted]{.hl} difference. The model-based SD is what is left after taking the pretest into account, so it is smaller and gives a larger *d*. The denominator is a choice: always report which SD you used.
 :::
 :::
 :::::
@@ -509,28 +509,26 @@ The numerator is the [pretest-adjusted]{.hl} difference. The denominator is a ch
 ```{r}
 #| echo: true
 #| message: false
-#| code-line-numbers: "1-2|3-4|8|9"
+#| code-line-numbers: "1-2|6|7"
 #| fig-width: 10
 #| fig-height: 4.6
 #| out-width: "90%"
 #| output-location: slide
-# observed SD of the posttest (all students)
-SD_observed <- sd(WritingData$SecondVersion)
 # pooled within-condition SD of the posttest
 SD_pooled <- sigma(lm(SecondVersion ~ factor(Experimental_condition), data = WritingData))
 
 posterior_d <- posterior_PD %>%
   mutate(
-    d_observed = b_Experimental_condition / SD_observed,
-    d_pooled   = b_Experimental_condition / SD_pooled
+    d_pooled = b_Experimental_condition / SD_pooled,
+    d_model  = b_Experimental_condition / sqrt(sd_Class__Intercept^2 + sigma^2)
   ) %>%
-  select(d_observed, d_pooled) %>%
+  select(d_pooled, d_model) %>%
   pivot_longer(everything(), names_to = "denominator", values_to = "d")
 
 ggplot(posterior_d, aes(x = d, y = denominator)) +
   stat_halfeye(.width = c(.50, .89)) +
   geom_vline(xintercept = c(-.1, .1), linetype = "dashed") +  # ROPE
-  scale_x_continuous("Cohen's d", breaks = seq(-.1, .7, by = .1)) +
+  scale_x_continuous("Cohen's d", breaks = seq(-.1, 1, by = .1)) +
   scale_y_discrete("")
 ```
 
