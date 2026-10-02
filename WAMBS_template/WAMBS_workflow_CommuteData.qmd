@@ -89,7 +89,7 @@ get_prior(
 In the following table we made a list of all the priors that were defaulted by `brms`.
 
 | Parameter(s) | Description | Prior | Rationale |
-|------------------|------------------|------------------|------------------|
+|----|----|----|----|
 | $\beta_{0}$ | Intercept | $\sim t(3,26.5,12.4)$ | *provide a rationale for this prior* |
 | $\beta_{1}$ | Overall effect of `Distance_c` | Flat prior | *provide a rationale for this prior* |
 | $\beta_{2}$ | Overall effect of `Departure_c` | Flat prior | *provide a rationale for this prior* |
@@ -102,7 +102,7 @@ We could also define our own priors. The next table gives an overview of our own
 In the following table we made a list of potential custom priors.
 
 | Parameter(s) | Description | Prior | Rationale |
-|------------------|------------------|------------------|------------------|
+|----|----|----|----|
 | $\beta_{0}$ | Intercept | $\sim t(3,26.5,12.4)$ | This is the `brms` default, a student t centred on the median commute in the data. It spreads prior probability for the expected commute of someone at the average distance leaving at 07:00 over roughly 0 to 55 minutes. Given that the commutes we observe run from about 10 to 65 minutes, that is a reasonable place to start. |
 | $\beta_{1}$ | Overall effect of `Distance_c` | $\sim N(0,10)$ | Here we use a normal distribution as our prior, with 0 as mean (we have no idea about the direction of the effect, so 0 gets most probability) and sd at 10. |
 | $\beta_{2}$ | Overall effect of `Departure_c` | $\sim N(0,10)$ | Here we use a normal distribution as our prior, with 0 as mean (we have no idea about the direction of the effect, so 0 gets most probability) and sd at 10. |

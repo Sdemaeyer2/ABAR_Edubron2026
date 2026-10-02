@@ -115,7 +115,6 @@ We want to learn more about [a population]{.hl} but we have [sample data]{.hl}!
 Therefore, we have [uncertainty]{.hl}
 :::
 
-
 ## Why statistical inference? an example
 
 > What is the effect of how far you live from work on the time your commute takes?
@@ -228,10 +227,7 @@ ggplot(draws, aes(y = sample)) +
         panel.grid.minor   = element_blank())
 ```
 
-A virtual population with $\beta_1$ = `r round(coef(Model1)[["Distance_c"]], 2)`,
-the dashed line. Draw 100 samples, get 100 intervals:
-[`r sum(!draws$misses)` contain it, `r sum(draws$misses)` do not]{.hl}. The 95%
-is a property of the [procedure across samples]{.hl}, not of any one interval.
+A virtual population with $\beta_1$ = `r round(coef(Model1)[["Distance_c"]], 2)`, the dashed line. Draw 100 samples, get 100 intervals: [`r sum(!draws$misses)` contain it, `r sum(draws$misses)` do not]{.hl}. The 95% is a property of the [procedure across samples]{.hl}, not of any one interval.
 
 ## Bayesian statistical inference
 
@@ -291,9 +287,7 @@ knitr::include_graphics("prior_data_posterior.png")
 :::
 
 ::: {.column width="50%"}
-
-$$P(\theta|data) = \frac{P(data|\theta)P(\theta)}{P(data)}$$
-with
+$$P(\theta|data) = \frac{P(data|\theta)P(\theta)}{P(data)}$$ with
 
 - $P(data|\theta)$ : the [likelihood]{.hl} of the data given our model $\theta$
 - $P(\theta)$ : our [prior]{.hl} belief about values for the model parameters
@@ -359,7 +353,6 @@ Three questions you got as homework.
 **2. about the average.** Now forget individuals. If we averaged the commute of everyone in this room into a single number, what would that number be? Give a low and a high you would bet on [8 times out of 10]{.hl}.
 
 **3. your commute time.** Finally, what is your commute time?
-
 
 ## What the room believes
 
@@ -439,28 +432,25 @@ ggplot(curves, aes(x, d)) +
   theme_linedraw()
 ```
 
-Pooled over [`r N_ROOM`]{.hl} of you: a belief about [each of the two unknowns]{.hl}
-in the model, centred on `r round(sigma_prior, 1)` and `r round(mu_prior, 1)` minutes.
-Different quantities and we are uncertain about both.`r ROOM_NOTE`
+Pooled over [`r N_ROOM`]{.hl} of you: a belief about [each of the two unknowns]{.hl} in the model, centred on `r round(sigma_prior, 1)` and `r round(mu_prior, 1)` minutes. Different quantities and we are uncertain about both.`r ROOM_NOTE`
 
 ## What the two numbers mean {.smaller}
 
-- **Q1** is a statement about the [parameter sigma, the spread of the data]{.hl}: $\sigma \approx `r round(sigma_prior, 1)`$ minutes. 
-- **Q2** is a statement about the [parameter mu, the average]{.hl}: $\mu \backsim N(`r round(mu_prior, 1)`, `r round(sd_prior, 1)`)$. 
-
+- **Q1** is a statement about the [parameter sigma, the spread of the data]{.hl}: $\sigma \approx `r round(sigma_prior, 1)`$ minutes.
+- **Q2** is a statement about the [parameter mu, the average]{.hl}: $\mu \backsim N(`r round(mu_prior, 1)`, `r round(sd_prior, 1)`)$.
 
 Our *uncertainty* about both the average and the spread will shrink as data arrives.
 
 ::: calcnote
-**How the numbers were made.** 
+**How the numbers were made.**
 
 An 80% central interval reaches `r round(Z/2, 2)` standard deviations either side of the centre, so it is 2 × `r round(Z/2, 2)` = `r round(Z, 3)` standard deviations **wide**. Compare the familiar ±1.96 for 95%, which is 3.920 wide. A low–high pair hands us a width, not a half-width, so sd = width / `r round(Z, 3)`.
 
 Q1: $\sigma$ = (`r round(ind_high, 1)` − `r round(ind_low, 1)`) / `r round(Z, 3)` = **`r round(sigma_prior, 1)`**. That is the room's average width, so it is one number pooled over `r N_ROOM` answers.
 
-**And how sure are we about $\sigma$?** Q1 gives a *value* for the spread, not our confidence in it, so that is added separately: $\sigma \backsim \text{lognormal}(\log `r round(sigma_prior, 1)`, `r sprintf('%.2f', sigma_logsd)`)$. Lognormal because a spread is *multiplicative* and must stay positive. It can be two-thirds or one-and-a-half times what you said, never −5 minutes. The `r sprintf('%.2f', sigma_logsd)` lives on the log scale, so 8 times out of 10 it puts $\sigma$ between **`r round(sigma_prior * exp(-(Z/2) * sigma_logsd), 1)`** and **`r round(sigma_prior * exp((Z/2) * sigma_logsd), 1)`** minutes. It is fixed rather than read off your answers: your Q1 ranges say what you think the spread *is*, not how sure you are about it.
+**And how sure are we about** $\sigma$? Q1 gives a *value* for the spread, not our confidence in it, so that is added separately: $\sigma \backsim \text{lognormal}(\log `r round(sigma_prior, 1)`, `r sprintf('%.2f', sigma_logsd)`)$. Lognormal because a spread is *multiplicative* and must stay positive. It can be two-thirds or one-and-a-half times what you said, never −5 minutes. The `r sprintf('%.2f', sigma_logsd)` lives on the log scale, so 8 times out of 10 it puts $\sigma$ between **`r round(sigma_prior * exp(-(Z/2) * sigma_logsd), 1)`** and **`r round(sigma_prior * exp((Z/2) * sigma_logsd), 1)`** minutes. It is fixed rather than read off your answers: your Q1 ranges say what you think the spread *is*, not how sure you are about it.
 
-Q2 pools `r N_ROOM` answers, so it has two sources of uncertainty: you disagree with each other (sd `r round(sd_between, 1)`), and each of you is unsure on your own (sd `r round(sd_within, 1)`). Variances add: $\mu_0$ = **`r round(mu_prior, 1)`**, 
+Q2 pools `r N_ROOM` answers, so it has two sources of uncertainty: you disagree with each other (sd `r round(sd_between, 1)`), and each of you is unsure on your own (sd `r round(sd_within, 1)`). Variances add: $\mu_0$ = **`r round(mu_prior, 1)`**,
 
 $\sigma_0 = \sqrt{`r round(sd_between,1)`^2 + `r round(sd_within,1)`^2}$ = **`r round(sd_prior, 1)`**.
 :::
@@ -556,7 +546,7 @@ CT
 
 ## Let's apply this idea
 
-What is the [**posterior probability**]{.hl} of [mu = `r C1_mu`]{.marker} combined with a [sigma = `r C1_sigma`]{.marker}?  *(this is C1)*
+What is the [**posterior probability**]{.hl} of [mu = `r C1_mu`]{.marker} combined with a [sigma = `r C1_sigma`]{.marker}? *(this is C1)*
 
 ```{r}
 #| echo: false
@@ -616,7 +606,7 @@ Product
 
 ## Let's apply this idea
 
-What is the [**posterior probability**]{.hl} of [mu = `r C2_mu`]{.marker} combined with a [sigma = `r C2_sigma`]{.marker}?  *(this is C2)*
+What is the [**posterior probability**]{.hl} of [mu = `r C2_mu`]{.marker} combined with a [sigma = `r C2_sigma`]{.marker}? *(this is C2)*
 
 ::::: columns
 ::: {.column width="50%"}
@@ -808,8 +798,7 @@ post %>%
 
 ## Watching the data take over
 
-Same prior, more data, and the same grid approximation as before. `n` is how many
-of your commutes we have looked at.
+Same prior, more data, and the same grid approximation as before. `n` is how many of your commutes we have looked at.
 
 ```{r}
 #| echo: true
@@ -1059,17 +1048,15 @@ summary(Mod_CT1)
 
 ## What priors did `brms` just use?
 
-We never told it. So it chose its own: [weakly informative]{.hl} defaults, built
-from the data themselves.
+We never told it. So it chose its own: [weakly informative]{.hl} defaults, built from the data themselves.
 
 ```{r}
 #| echo: true
 prior_summary(Mod_CT1)
 ```
 
-::: {.calcnote}
-Sensible defaults, but they are not *your* priors. The grid approximation a few
-slides ago used the ranges you wrote down. This model has never seen them.
+::: calcnote
+Sensible defaults, but they are not *your* priors. The grid approximation a few slides ago used the ranges you wrote down. This model has never seen them.
 :::
 
 ## The same model with your priors

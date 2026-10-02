@@ -96,9 +96,12 @@ ggplot(curves, aes(x, d)) +
   theme_linedraw()
 ```
 
-Pooled over [`r N_ROOM`]{.hl} of you: a belief about [each of the two unknowns]{.hl}
-in the model, centred on `r round(sigma_prior, 1)` and `r round(mu_prior, 1)` minutes.
-Different quantities and we are uncertain about both.`r ROOM_NOTE`
+Our [**Model**]{.hl} for commuting times
+
+$y_i \backsim N(\mu, \sigma)$
+
+
+Pooled over [`r N_ROOM`]{.hl} of you a belief about [each of the two unknowns]{.hl} in the model, centred on `r round(sigma_prior, 1)` and `r round(mu_prior, 1)` minutes
 
 ## Yesterday: how MCMC found the posterior
 
@@ -133,12 +136,12 @@ cat("```{=html}\n<script>window.MCMC_CFG = ",
 
 ## New example data `WritingData.RData`
 
--   Experimental study on Writing instructions
+- Experimental study on Writing instructions
 
--   2 conditions:
+- 2 conditions:
 
-    -   Control condition (Business as usual)
-    -   Experimental condition (Observational learning)
+  - Control condition (Business as usual)
+  - Experimental condition (Observational learning)
 
 ```{r, out.height = "50%", out.width="50%", echo = FALSE}
 knitr::include_graphics(here("Presentations", "Part3","WritingDataDesc.jpg"))
@@ -146,17 +149,17 @@ knitr::include_graphics(here("Presentations", "Part3","WritingDataDesc.jpg"))
 
 ## `r fontawesome::fa("laptop-code", "white")` Your Turn {background-color="#002e65" transition="slide-in"}
 
--   Open `WritingData.RData`
+- Open `WritingData.RData`
 
--   Estimate 3 models with `SecondVersion` as dependent variable
+- Estimate 3 models with `SecondVersion` as dependent variable
 
-    -   M1: fixed effect of `FirstVersion_GM` + random effect of `Class` (`(1|Class)`)
-    -   M2: M1 + random effect of `FirstVersion_GM` (`(1 + FirstVersion_GM |Class)`)
-    -   M3: M2 + fixed effect of `Experimental_condition`
+  - M1: fixed effect of `FirstVersion_GM` + random effect of `Class` (`(1|Class)`)
+  - M2: M1 + random effect of `FirstVersion_GM` (`(1 + FirstVersion_GM |Class)`)
+  - M3: M2 + fixed effect of `Experimental_condition`
 
--   Compare the models on their fit
+- Compare the models on their fit
 
--   Make a summary of the best fitting model/ What do we learn?
+- Make a summary of the best fitting model/ What do we learn?
 
 ::: aside
 [Note:]{style="color: white"} `FirstVersion_GM`[is the score of the pretest centred around the mean, so a score 0 for this variable implies scoring on average for the pretest]{style="color: white"}
@@ -230,15 +233,15 @@ fig
 
 ## Divergent transitions...
 
--   Something to worry about!
+- Something to worry about!
 
--   Essentially: sampling of parameter estimate values went wrong
+- Essentially: sampling of parameter estimate values went wrong
 
--   Fixes:
+- Fixes:
 
-    -   sometimes fine-tuning the sampling algorithm (e.g., `control = list(adapt_delta = 0.9)`) works
-    -   sometimes you need more informative priors
-    -   sometimes the model is just not a good model
+  - sometimes fine-tuning the sampling algorithm (e.g., `control = list(adapt_delta = 0.9)`) works
+  - sometimes you need more informative priors
+  - sometimes the model is just not a good model
 
 ## Our fix here for model 3
 
@@ -266,23 +269,23 @@ knitr::include_graphics("M3_summary.jpg")
 
 Different ways to summarize our results:
 
--   visually
+- visually
 
--   credible intervals (eti & hdi)
+- credible intervals (eti & hdi)
 
--   rope + hdi rule
+- rope + hdi rule
 
--   hypothesis tests
+- hypothesis tests
 
 # Visually summarizing the posterior distribution
 
 ## Functions in `bayesplot` package
 
--   `mcmc_areas()` function
+- `mcmc_areas()` function
 
--   `mcmc_areas_ridges()` function
+- `mcmc_areas_ridges()` function
 
--   `mcmc_intervals()` function
+- `mcmc_intervals()` function
 
 ## The `mcmc_areas()` function
 
@@ -553,7 +556,7 @@ posterior_PD %>%
 
 ## From a raw effect to a standardized effect size
 
-::::: columns
+:::::: columns
 ::: {.column width="50%"}
 `b_Experimental_condition` is on the scale of the writing score
 
@@ -570,18 +573,18 @@ To compare with the literature we want a [standardized effect size]{.hl}
 Do this [for every draw]{.hl-blue} → a posterior distribution of *d*
 :::
 
-::: {.column width="50%"}
+:::: {.column width="50%"}
 <b>But: which SD?</b>
 
--   pooled SD of `SecondVersion` (within the two conditions): [one observed value]{.hl-blue}, the classic Cohen's *d*
+- pooled SD of `SecondVersion` (within the two conditions): [one observed value]{.hl-blue}, the classic Cohen's *d*
 
--   `sqrt(sd_Class__Intercept^2 + sigma^2)`: between-class + within-class SD from the model, [a value for every draw]{.hl-blue}
+- `sqrt(sd_Class__Intercept^2 + sigma^2)`: between-class + within-class SD from the model, [a value for every draw]{.hl-blue}
 
-::: {.calcnote}
+::: calcnote
 The numerator is the [pretest-adjusted]{.hl} difference. The model-based SD is what is left after taking the pretest into account, so it is smaller and gives a larger *d*. The denominator is a choice: always report which SD you used.
 :::
-:::
-:::::
+::::
+::::::
 
 ## Effect sizes based on the draws
 
@@ -953,11 +956,11 @@ posterior %>%
 ::: {.column width="40%"}
 <br>
 
--   ETI: Equal Tailed Interval
+- ETI: Equal Tailed Interval
 
 <br>
 
--   HDI: Highest Density Interval
+- HDI: Highest Density Interval
 :::
 :::::
 
@@ -975,11 +978,11 @@ knitr::include_graphics("Kruchke_2018.jpg")
 
 <i> [Set a region of parameter values that can be considered equivalent to having no effect]{.marker} </i>
 
--   in standard effect sizes the advised default is a range of -0.1 to 0.1
+- in standard effect sizes the advised default is a range of -0.1 to 0.1
 
--   this equals [1/2 of a small effect size]{.hl} (Cohen, 1988)
+- this equals [1/2 of a small effect size]{.hl} (Cohen, 1988)
 
--   all parameter values in that range are set equal to [no effect]{.hl}
+- all parameter values in that range are set equal to [no effect]{.hl}
 :::
 :::::
 
@@ -997,11 +1000,11 @@ knitr::include_graphics("Kruchke_2018.jpg")
 
 <br>
 
--   95% of HDI out of ROPE $\rightarrow$ $H_0$ rejected
+- 95% of HDI out of ROPE $\rightarrow$ $H_0$ rejected
 
--   95% of HDI all in ROPE $\rightarrow$ $H_0$ not rejected
+- 95% of HDI all in ROPE $\rightarrow$ $H_0$ not rejected
 
--   95% of HDI partially out of ROPE $\rightarrow$ undecided
+- 95% of HDI partially out of ROPE $\rightarrow$ undecided
 :::
 :::::
 
@@ -1062,7 +1065,7 @@ knitr::include_graphics("cover_Lambert.jpg")
 knitr::include_graphics("cover_rethinking2.jpg")
 ```
 
-## Some books `r fontawesome::fa("book")` 
+## Some books `r fontawesome::fa("book")`
 
 "Regression and Other Stories" by Andrew Gelman, Jennifer Hill and Aki Vethari
 
@@ -1070,11 +1073,11 @@ knitr::include_graphics("cover_rethinking2.jpg")
 
 ## Some free online books `r fontawesome::fa("book")`
 
--   Bayes Rules!:
+- Bayes Rules!:
 
 <https://www.bayesrulesbook.com/>
 
--   Or this book:
+- Or this book:
 
 <https://vasishth.github.io/bayescogsci/book/>
 
