@@ -85,7 +85,9 @@ marks <- data.frame(panel = factor(levels(curves$panel),
                     x     = c(sigma_prior, mu_prior))
 
 ggplot(curves, aes(x, d)) +
-  geom_area(fill = "#002e65", alpha = .18) +
+  # geom_ribbon, not geom_area: geom_area stacks/aligns the two facets
+  # and draws a striped, too-high area on some ggplot2 versions
+  geom_ribbon(aes(ymin = 0, ymax = d), fill = "#002e65", alpha = .18) +
   geom_line(colour = "#002e65", linewidth = 1) +
   geom_vline(data = marks, aes(xintercept = x), colour = "#ea2c38",
              linetype = "dotted", linewidth = 1) +
