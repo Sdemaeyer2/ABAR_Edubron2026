@@ -1,0 +1,161 @@
+<div class="mcmc-ex" id="mcmcEx">
+<style>
+.mcmc-ex { display:flex; gap:28px; align-items:flex-start; font-size:22px; }
+.mcmc-ex canvas { background:#fff; }
+.mcmc-ex .side { display:flex; flex-direction:column; gap:10px; width:430px; }
+.mcmc-ex .ctrl { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.mcmc-ex button { font: 600 18px/1 "Source Sans Pro", Helvetica, sans-serif; padding:7px 12px; border:1px solid #d4dae3; background:#f7f8fa; color:#002e65; border-radius:4px; cursor:pointer; }
+.mcmc-ex button.on { background:#002e65; color:#fff; border-color:#002e65; }
+.mcmc-ex .iter { font-size:20px; color:#4a6b93; }
+.mcmc-ex .legend { font-size:18px; color:#1a1a1a; }
+.mcmc-ex .legend span { display:inline-block; width:14px; height:14px; border-radius:50%; margin:0 6px -1px 0; }
+.mcmc-ex .note { font-size:16px; color:#4a6b93; line-height:1.3; }
+</style>
+<canvas id="mcmcSpace" width="820" height="570"></canvas>
+<div class="side">
+  <div class="ctrl">
+    <button id="mcmcPlay">&#9654; Play</button>
+    <button id="mcmcStep">Step</button>
+    <button id="mcmcReset">Reset</button>
+  </div>
+  <div class="ctrl">
+    <button id="mcmcMH" class="on">Metropolis</button>
+    <button id="mcmcHMC">HMC (Stan)</button>
+  </div>
+  <div class="iter" id="mcmcIter">iteration 0</div>
+  <div class="legend"><span style="background:#ea2c38"></span>chain 1 &nbsp; <span style="background:#1b4a7a"></span>chain 2</div>
+  <canvas id="mcmcTrace" width="430" height="300"></canvas>
+  <div class="note" id="mcmcCap"></div>
+  <div class="note" id="mcmcNote">Grey = posterior density. Each dot is one draw; × = rejected proposal.</div>
+</div>
+<script>
+(function(){
+  // ---- posterior: CT ~ Normal(mu, sigma) with the room's priors ------------
+  // (the same model as Mod_CT1_priors; numbers come from window.MCMC_CFG,
+  //  written by an R chunk in the .qmd)
+  var C = window.MCMC_CFG, y = C.y, n = y.length, ybar = 0, S = 0;
+  y.forEach(function(v){ ybar += v / n; }); y.forEach(function(v){ S += (v-ybar)*(v-ybar); });
+  function lp(mu, sg){ if (!(sg > 0)) return -Infinity;
+    var ls = Math.log(sg);
+    return -n*ls - (S + n*(ybar-mu)*(ybar-mu)) / (2*sg*sg)
+           - (mu-C.mu0)*(mu-C.mu0) / (2*C.sd0*C.sd0)
+           - ls - (ls-C.lsig0)*(ls-C.lsig0) / (2*C.lsd*C.lsd); }
+  function grad(mu, sg){ var q = S + n*(ybar-mu)*(ybar-mu), ls = Math.log(sg);
+    return [ n*(ybar-mu)/(sg*sg) - (mu-C.mu0)/(C.sd0*C.sd0),
+             -n/sg + q/(sg*sg*sg) - 1/sg - (ls-C.lsig0)/(C.lsd*C.lsd*sg) ]; }
+  var MU = C.MU, SG = C.SG, NITER = C.niter;
+  var sdMu = C.post_sd, sdSg = C.post_sigma_sd, cMu = C.post_mu, cSg = C.post_sigma;   // scaling for HMC
+
+  // ---- drawing helpers -------------------------------------------------------
+  var cv = document.getElementById('mcmcSpace'), cx = cv.getContext('2d');
+  var tv = document.getElementById('mcmcTrace'), tx = tv.getContext('2d');
+  var L = 80, R = 20, T = 15, B = 65, W = cv.width - L - R, H = cv.height - T - B;
+  function X(mu){ return L + (mu - MU[0]) / (MU[1]-MU[0]) * W; }
+  function Y(sg){ return T + (1 - (sg - SG[0]) / (SG[1]-SG[0])) * H; }
+  var COL = ['#ea2c38', '#1b4a7a'];
+
+  // background density image (computed once)
+  var bg = document.createElement('canvas'); bg.width = W; bg.height = H;
+  (function(){ var b = bg.getContext('2d'), img = b.createImageData(W, H), mx = -Infinity;
+    for (var jj=0;jj<H;jj+=2) for (var ii=0;ii<W;ii+=2){ var v = lp(MU[0]+(ii+.5)/W*(MU[1]-MU[0]), SG[1]-(jj+.5)/H*(SG[1]-SG[0])); if (v>mx) mx=v; }
+    for (var j=0;j<H;j++) for (var i=0;i<W;i++){
+      var mu = MU[0] + (i+.5)/W*(MU[1]-MU[0]), sg = SG[1] - (j+.5)/H*(SG[1]-SG[0]);
+      var d = Math.exp(lp(mu,sg) - mx), g = Math.round(255 - 150*d), k = 4*(j*W+i);
+      img.data[k]=g; img.data[k+1]=g; img.data[k+2]=g; img.data[k+3]=255; }
+    b.putImageData(img,0,0); })();
+
+  function axes(){
+    cx.fillStyle = '#fff'; cx.fillRect(0,0,cv.width,cv.height);
+    cx.drawImage(bg, L, T);
+    cx.strokeStyle = '#1a1a1a'; cx.lineWidth = 1; cx.strokeRect(L, T, W, H);
+    cx.fillStyle = '#1a1a1a'; cx.font = '18px Times, "Liberation Serif", serif'; cx.textAlign = 'center';
+    function ticks(r){ var st = [1,2,5,10,20,50].find(function(t){ return (r[1]-r[0])/t <= 8; }) || 100, out = [];
+      for (var v = Math.ceil(r[0]/st)*st; v <= r[1]; v += st) out.push(v); return out; }
+    ticks(MU).forEach(function(m){ cx.fillText(m, X(m), T+H+22); cx.beginPath(); cx.moveTo(X(m),T+H); cx.lineTo(X(m),T+H+5); cx.stroke(); });
+    cx.textAlign = 'right';
+    ticks(SG).forEach(function(g){ cx.fillText(g, L-10, Y(g)+6); cx.beginPath(); cx.moveTo(L-5,Y(g)); cx.lineTo(L,Y(g)); cx.stroke(); });
+    cx.textAlign = 'center'; cx.font = '21px Times, "Liberation Serif", serif';
+    cx.fillText('μ  (average commuting time, minutes)', L+W/2, T+H+52);
+    cx.save(); cx.translate(24, T+H/2); cx.rotate(-Math.PI/2); cx.fillText('σ  (spread of commuting times, minutes)', 0, 0); cx.restore();
+  }
+
+  // ---- samplers --------------------------------------------------------------
+  function rn(){ var u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  function mhStep(c){
+    var pm = c.mu + C.step*sdMu*rn(), ps = c.sg + C.step*sdSg*rn();
+    var acc = Math.log(Math.random()) < lp(pm,ps) - lp(c.mu,c.sg);
+    var r = {from:[c.mu,c.sg], prop:[pm,ps], acc:acc};
+    if (acc){ c.mu = pm; c.sg = ps; } return r;
+  }
+  function hmcStep(c){   // unit-mass HMC in standardized coordinates
+    var z = [(c.mu-cMu)/sdMu, (c.sg-cSg)/sdSg], p = [rn(), rn()], eps = 0.15, Ls = 9;
+    function U(z){ return -lp(cMu+z[0]*sdMu, cSg+z[1]*sdSg); }
+    function gU(z){ var g = grad(cMu+z[0]*sdMu, cSg+z[1]*sdSg); return [-g[0]*sdMu, -g[1]*sdSg]; }
+    var z0 = z.slice(), H0 = U(z) + (p[0]*p[0]+p[1]*p[1])/2, path = [[c.mu,c.sg]], g = gU(z);
+    for (var l=0;l<Ls;l++){
+      p[0]-=eps/2*g[0]; p[1]-=eps/2*g[1]; z[0]+=eps*p[0]; z[1]+=eps*p[1];
+      g = gU(z); p[0]-=eps/2*g[0]; p[1]-=eps/2*g[1];
+      path.push([cMu+z[0]*sdMu, cSg+z[1]*sdSg]);
+    }
+    var H1 = U(z) + (p[0]*p[0]+p[1]*p[1])/2, acc = isFinite(H1) && Math.log(Math.random()) < H0 - H1;
+    var r = {from:[c.mu,c.sg], prop:path[path.length-1], acc:acc, path:path};
+    if (acc){ c.mu = path[path.length-1][0]; c.sg = path[path.length-1][1]; } return r;
+  }
+
+  // ---- state -----------------------------------------------------------------
+  var mode = 'mh', chains, it, timer = null, last;
+  function reset(){
+    chains = [{mu:C.start[0][0], sg:C.start[0][1], draws:[C.start[0].slice()]}, {mu:C.start[1][0], sg:C.start[1][1], draws:[C.start[1].slice()]}];
+    it = 0; last = [null,null]; stop(); draw();
+  }
+  function step(){
+    if (it >= NITER){ stop(); return; }
+    for (var k=0;k<2;k++){ last[k] = (mode==='mh' ? mhStep : hmcStep)(chains[k]); chains[k].draws.push([chains[k].mu, chains[k].sg]); }
+    it++; draw();
+  }
+  function draw(){
+    axes();
+    for (var k=0;k<2;k++){
+      var d = chains[k].draws, c = COL[k];
+      cx.strokeStyle = c; cx.globalAlpha = .55; cx.lineWidth = 1.5; cx.beginPath();
+      d.forEach(function(q,i){ i ? cx.lineTo(X(q[0]),Y(q[1])) : cx.moveTo(X(q[0]),Y(q[1])); }); cx.stroke();
+      cx.globalAlpha = 1; cx.fillStyle = c;
+      d.forEach(function(q,i){ cx.beginPath(); cx.arc(X(q[0]),Y(q[1]), i===d.length-1 ? 8 : 4, 0, 2*Math.PI); cx.fill(); });
+      var r = last[k];
+      if (r){
+        if (r.path){ cx.setLineDash([4,4]); cx.strokeStyle = c; cx.lineWidth = 2; cx.beginPath();
+          r.path.forEach(function(q,i){ i ? cx.lineTo(X(q[0]),Y(q[1])) : cx.moveTo(X(q[0]),Y(q[1])); }); cx.stroke(); cx.setLineDash([]); }
+        if (!r.acc){ var px = X(r.prop[0]), py = Y(r.prop[1]); cx.strokeStyle = c; cx.lineWidth = 3;
+          cx.beginPath(); cx.moveTo(px-8,py-8); cx.lineTo(px+8,py+8); cx.moveTo(px+8,py-8); cx.lineTo(px-8,py+8); cx.stroke(); }
+      }
+    }
+    document.getElementById('mcmcIter').textContent = 'iteration ' + it + ' / ' + NITER;
+    trace();
+  }
+  function trace(){
+    tx.fillStyle = '#fff'; tx.fillRect(0,0,tv.width,tv.height);
+    var pans = [{lab:'μ', rng:MU, i:0, y0:5}, {lab:'σ', rng:SG, i:1, y0:155}], l=40, w=tv.width-l-10, h=125;
+    pans.forEach(function(P){
+      tx.strokeStyle = '#1a1a1a'; tx.lineWidth = 1; tx.strokeRect(l, P.y0, w, h);
+      tx.fillStyle = '#1a1a1a'; tx.font = '20px Times, "Liberation Serif", serif'; tx.textAlign='center'; tx.fillText(P.lab, 16, P.y0+h/2+6);
+      for (var k=0;k<2;k++){ var d = chains[k].draws; tx.strokeStyle = COL[k]; tx.lineWidth = 1.8; tx.beginPath();
+        d.forEach(function(q,j){ var xx = l + j/NITER*w, yy = P.y0 + (1-(q[P.i]-P.rng[0])/(P.rng[1]-P.rng[0]))*h;
+          j ? tx.lineTo(xx,yy) : tx.moveTo(xx,yy); }); tx.stroke(); }
+    });
+    tx.font = '16px Times, "Liberation Serif", serif'; tx.fillStyle = '#1a1a1a'; tx.fillText('iteration', l+w/2, 296);
+  }
+  function stop(){ if (timer){ clearInterval(timer); timer = null; } document.getElementById('mcmcPlay').innerHTML = '&#9654; Play'; }
+  document.getElementById('mcmcPlay').onclick = function(){
+    if (timer){ stop(); return; } if (it >= NITER) reset();
+    timer = setInterval(step, 450); this.innerHTML = '&#10074;&#10074; Pause'; };
+  document.getElementById('mcmcStep').onclick = function(){ stop(); step(); };
+  document.getElementById('mcmcReset').onclick = reset;
+  function setMode(m){ mode = m; document.getElementById('mcmcMH').className = m==='mh'?'on':''; document.getElementById('mcmcHMC').className = m==='hmc'?'on':'';
+    document.getElementById('mcmcNote').textContent = m==='mh' ? 'Grey = posterior density. Each dot is one draw; × = rejected proposal.' : 'Grey = posterior density. Dashed = the trajectory HMC simulates before landing on the next draw.'; reset(); }
+  document.getElementById('mcmcMH').onclick = function(){ setMode('mh'); };
+  document.getElementById('mcmcHMC').onclick = function(){ setMode('hmc'); };
+  document.getElementById('mcmcCap').innerHTML = C.caption || '';
+  reset();
+})();
+</script>
+</div>

@@ -29,6 +29,10 @@ library(ggmcmc)
 library(patchwork)
 library(priorsense)
 
+# The two "Yesterday" recap slides use the room's priors and commuting
+# times from Part 1, so they read the same single source of truth.
+suppressMessages(source(here("R_code", "elicitation.R")))
+
 load(
   file = here(
     "Presentations", 
@@ -50,6 +54,79 @@ theme_set(theme_linedraw() +
               )
 )
 
+```
+
+## Yesterday: what the room believes
+
+```{r}
+#| echo: false
+#| fig-height: 3.5
+#| fig-width: 11
+# Two questions, two unknowns, two priors. They do NOT share an x-axis:
+# the left panel is a number of minutes of SPREAD, the right a number of
+# minutes of AVERAGE. Hence scales = "free".
+X_mu  <- seq(X_VIEW[1], X_VIEW[2], length.out = 600)
+X_sig <- seq(0, ceiling(qlnorm(0.999, log(sigma_prior), sigma_logsd)),
+             length.out = 600)
+
+curves <- rbind(
+  data.frame(x = X_sig, d = dlnorm(X_sig, log(sigma_prior), sigma_logsd),
+             panel = "Q1  where is the SPREAD?   (sigma)"),
+  data.frame(x = X_mu,  d = dnorm(X_mu, mu_prior, sd_prior),
+             panel = "Q2  where is the AVERAGE?   (mu)")
+)
+
+# keep the panels in the order they were asked, not alphabetical
+curves$panel <- factor(curves$panel, levels = unique(curves$panel))
+
+# each panel is marked at its own elicited value
+marks <- data.frame(panel = factor(levels(curves$panel),
+                                   levels = levels(curves$panel)),
+                    x     = c(sigma_prior, mu_prior))
+
+ggplot(curves, aes(x, d)) +
+  geom_area(fill = "#002e65", alpha = .18) +
+  geom_line(colour = "#002e65", linewidth = 1) +
+  geom_vline(data = marks, aes(xintercept = x), colour = "#ea2c38",
+             linetype = "dotted", linewidth = 1) +
+  facet_wrap(~ panel, ncol = 2, scales = "free") +
+  labs(x = "minutes", y = "density") +
+  theme_linedraw()
+```
+
+Pooled over [`r N_ROOM`]{.hl} of you: a belief about [each of the two unknowns]{.hl}
+in the model, centred on `r round(sigma_prior, 1)` and `r round(mu_prior, 1)` minutes.
+Different quantities and we are uncertain about both.`r ROOM_NOTE`
+
+## Yesterday: how MCMC found the posterior
+
+```{r}
+#| output: asis
+# Everything the explorer needs, from the same elicitation.R that built
+# Mod_CT1_priors in Part 1: the room's commuting times and their priors.
+# The grey background is that model's posterior, computed exactly.
+mcmc_cfg <- list(
+  y       = CT,
+  mu0     = mu_prior,          sd0   = sd_prior,
+  lsig0   = log(sigma_prior),  lsd   = sigma_logsd,
+  post_mu = post_mu,           post_sd       = post_sd,
+  post_sigma = post_sigma,     post_sigma_sd = post_sigma_sd,
+  MU    = c(floor(post_mu - 4.2 * post_sd), ceiling(post_mu + 4.2 * post_sd)),
+  SG    = c(max(0.5, floor(post_sigma - 3.2 * post_sigma_sd)),
+            ceiling(post_sigma + 4.5 * post_sigma_sd)),
+  start = list(c(post_mu - 3.4 * post_sd, post_sigma + 3.6 * post_sigma_sd),
+               c(post_mu + 3.4 * post_sd, post_sigma - 2.4 * post_sigma_sd)),
+  step  = 1.0,                 # Metropolis proposal, in posterior sd's
+  niter = 50,
+  caption = "Model <code>Mod_CT1_priors</code>: your commuting times + your priors."
+)
+cat("```{=html}\n<script>window.MCMC_CFG = ",
+    jsonlite::toJSON(mcmc_cfg, auto_unbox = TRUE, digits = 6),
+    ";</script>\n```\n", sep = "")
+```
+
+```{=html}
+{{< include mcmc_explorer.html >}}
 ```
 
 ## New example data `WritingData.RData`
